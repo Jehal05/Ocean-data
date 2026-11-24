@@ -1,6 +1,8 @@
 # SYNTHETIC DATA generated for software testing. NOT real observations.
+# synthetic: true
 # platform: SYN-BUOY-01
 # fill_value: -999
+# units: wspd_ms=m s-1, wdir_deg=degree, airtemp_C=degC, rh_pct=%, slp_hPa=hPa, hs_m=m, tp_s=s, mwdir_deg=degree, sst_C=degC, cur_speed_cm_s=cm s-1, cur_dir_deg=degree
 time_utc,lat,lon,wspd_ms,wdir_deg,airtemp_C,rh_pct,slp_hPa,hs_m,tp_s,mwdir_deg,sst_C,cur_speed_cm_s,cur_dir_deg
 2025-01-01T00:00:00Z,15.0,68.0,2.73,42.0,25.16,74.9,1009.5,0.71,9.9,210.0,27.21,32.9,97.0
 2025-01-01T01:00:00Z,15.0,68.0,2.96,42.0,24.98,74.8,1010.1,0.75,9.9,211.0,27.17,32.9,97.0

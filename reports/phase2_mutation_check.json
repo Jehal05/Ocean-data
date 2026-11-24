@@ -1,0 +1,98 @@
+{
+  "baseline_recall": "24/24",
+  "baseline_primary_fired": "24/24",
+  "tests": [
+    {
+      "test_id": "missing_value",
+      "recall_without_it": "24/24",
+      "primary_fired_without_it": "19/24",
+      "exercised_by_answer_key": true,
+      "recall_dropped": false,
+      "primary_fired_dropped": true
+    },
+    {
+      "test_id": "format_consistency",
+      "recall_without_it": "24/24",
+      "primary_fired_without_it": "24/24",
+      "exercised_by_answer_key": false,
+      "recall_dropped": false,
+      "primary_fired_dropped": false
+    },
+    {
+      "test_id": "global_range",
+      "recall_without_it": "24/24",
+      "primary_fired_without_it": "19/24",
+      "exercised_by_answer_key": true,
+      "recall_dropped": false,
+      "primary_fired_dropped": true
+    },
+    {
+      "test_id": "regional_range",
+      "recall_without_it": "24/24",
+      "primary_fired_without_it": "24/24",
+      "exercised_by_answer_key": false,
+      "recall_dropped": false,
+      "primary_fired_dropped": false
+    },
+    {
+      "test_id": "spike",
+      "recall_without_it": "22/24",
+      "primary_fired_without_it": "19/24",
+      "exercised_by_answer_key": true,
+      "recall_dropped": true,
+      "primary_fired_dropped": true
+    },
+    {
+      "test_id": "position_on_land",
+      "recall_without_it": "22/24",
+      "primary_fired_without_it": "22/24",
+      "exercised_by_answer_key": true,
+      "recall_dropped": true,
+      "primary_fired_dropped": true
+    },
+    {
+      "test_id": "position_range",
+      "recall_without_it": "23/24",
+      "primary_fired_without_it": "23/24",
+      "exercised_by_answer_key": true,
+      "recall_dropped": true,
+      "primary_fired_dropped": true
+    },
+    {
+      "test_id": "timestamp_valid",
+      "recall_without_it": "24/24",
+      "primary_fired_without_it": "24/24",
+      "exercised_by_answer_key": false,
+      "recall_dropped": false,
+      "primary_fired_dropped": false
+    },
+    {
+      "test_id": "timestamp_monotonic",
+      "recall_without_it": "20/24",
+      "primary_fired_without_it": "20/24",
+      "exercised_by_answer_key": true,
+      "recall_dropped": true,
+      "primary_fired_dropped": true
+    },
+    {
+      "test_id": "density_inversion",
+      "recall_without_it": "23/24",
+      "primary_fired_without_it": "22/24",
+      "exercised_by_answer_key": true,
+      "recall_dropped": true,
+      "primary_fired_dropped": true
+    }
+  ],
+  "removal_changes_nothing": [
+    "format_consistency",
+    "regional_range",
+    "timestamp_valid"
+  ],
+  "recall_unchanged_when_removed": [
+    "missing_value",
+    "format_consistency",
+    "global_range",
+    "regional_range",
+    "timestamp_valid"
+  ]
+}

@@ -16,12 +16,15 @@ Intelligence System for Geo-spatial Analysis and Target-Based Modelling"
 
 ## Phase 2: parsers, QC and ingest
 
+Review round (config 0.2.0): empty `INGEST_API_KEY` disables `/ingest` (503); the ingest role can update only status columns (migration 005); synthetic status is declared in the file (`# synthetic: true` / attribute `is_synthetic`), and `unknown` is valid; CSV unit conversions use a `# units: col=unit, ...` header, otherwise `units_assumed_from_mapping` is set; QC does not read the clock (reference time is recorded); time jumps now flag the wrong record. A blind error set (`data/blind_errors`) was scored once: `reports/phase2_blind_score.md`. Other reports: `phase2_qc_score.md`, `phase2_mutation_check.md`. Details and limits: `docs/phase2_design.md` sections 7 and 8.
+
 ```bash
 docker compose down -v          # ONLY if you already started Phase 1: db/init runs on a fresh volume only (deletes data)
 docker compose up --build -d    # now also starts parser-api on http://localhost:8001
 curl localhost:8001/parsers
-curl -X POST localhost:8001/ingest -H 'content-type: application/json' -d '{"path": "/srv/data/test_errors/buoy_met_wave_errors.csv"}'
-curl localhost:8001/datasets/buoy_met_wave_errors/qc-summary
+# POST /ingest needs a key: set INGEST_API_KEY in .env (see .env.example), or INGEST_ALLOW_ANONYMOUS=true for local development only
+curl -X POST localhost:8001/ingest -H "X-API-Key: $INGEST_API_KEY" -H 'content-type: application/json' -d '{"path": "/srv/data/test_errors/buoy_met_wave_errors.csv"}'
+curl -H "X-API-Key: $INGEST_API_KEY" localhost:8001/datasets/buoy_met_wave_errors/qc-summary
 python tests/check_phase2.py    # acceptance check, PASS / FAIL / SKIP with evidence
 python tests/score_qc.py        # recall against the answer key, writes reports/phase2_qc_score.md
 ```
@@ -37,7 +40,7 @@ python tests/score_qc.py        # recall against the answer key, writes reports/
 
 The Docker stack has **not yet been started end to end** by the author (no Docker daemon was available while building). Tested separately: the database schema and roles (on PostgreSQL 16 with PostGIS replaced by plain types), the API and upload script (against an S3 emulator), the data scripts and the answer key. Untested: the PostGIS-specific SQL, the SeaweedFS service settings, `fetch_public_data.py`. Run `docker compose up --build -d` and then `python tests/check_phase1.py`; fix anything it reports.
 
-**Phase 2 additionally:** the `parser-api` image and its compose service were validated with `docker compose config` but **never built or started**. Database behaviour was tested on a stand-in PostgreSQL 16 *without PostGIS* (geography columns replaced by text, a shim for `ST_GeogFromText`), so the point and polygon columns and spatial indexes are untested. All data is synthetic, so the 24/24 recall shows the tests find the planted error kinds, not that they work on real observations. Thresholds for the Argo-derived tests were recalled from memory; verify them against the current Argo Quality Control Manual before relying on them.
+**Phase 2 additionally:** the `parser-api` image and its compose service were validated with `docker compose config` but **never built or started**. Database behaviour was tested on a stand-in PostgreSQL 16 *without PostGIS* (geography columns replaced by text, a shim for `ST_GeogFromText`), so the point and polygon columns and spatial indexes are untested. All data is synthetic, so the 24/24 recall shows the tests find the planted error kinds, not that they work on real observations. The blind error set was written by the same author on synthetic data. Thresholds for the Argo-derived tests were recalled from memory; verify them against the current Argo Quality Control Manual before relying on them.
 
 ## Start the stack
 
@@ -98,7 +101,7 @@ Prints PASS / FAIL / SKIP per acceptance criterion. SKIP means "could not be ver
 ```
 docker-compose.yml          the stack
 config/seaweedfs-s3.json    S3 credentials for the dev object store
-db/init/                    001 schema, 002 limited API role, 003 dev seed users, 004 ingest role (Phase 2)
+db/init/                    001 schema, 002 limited API role, 003 dev seed users, 004 ingest role, 005 ingest rights narrowed (Phase 2)
 docs/architecture.md        component diagram, tech choices, scope, flag-storage decision
 docs/phase2_design.md       Phase 2 design note and the changes made after it
 docs/data_model.md          common data model (draft) and open questions for NPOL

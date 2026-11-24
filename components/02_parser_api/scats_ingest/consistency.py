@@ -24,7 +24,11 @@ class ConsistencyReport:
 
 
 def verify_flag_consistency(dataset_key: str, *, db_url: str, staging_dir: Path | str) -> ConsistencyReport:
-    ds = read_staging(staging_dir, dataset_key)
+    try:
+        ds = read_staging(staging_dir, dataset_key)
+    except (FileNotFoundError, OSError, ValueError) as exc:
+        return ConsistencyReport(dataset_key, False, 0, 0,
+                                 missing_in_db=[f"staging file unreadable or missing: {type(exc).__name__}"])
     want = {r.key: r.flag for r in rules.expected_rows(ds)}
     overall = rules.overall_flags(ds)
     con = psycopg2.connect(db_url)

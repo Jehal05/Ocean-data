@@ -232,7 +232,6 @@ def main() -> int:
             fn()
         except Exception as exc:  # noqa: BLE001
             record(fn.__name__, "FAIL", f"check crashed: {exc}")
-    width = max(len(r[0]) for r in results)
     for name, status, ev in results:
         print(f"[{status:4s}] {name}\n        {ev}")
     counts = {s: sum(1 for r in results if r[1] == s) for s in ("PASS", "FAIL", "SKIP")}

@@ -153,6 +153,31 @@ def read_csv_header(path: Path) -> tuple[dict[str, str], str]:
     return meta, "\n".join(lines)
 
 
+_SYNTH = {"true": "true", "yes": "true", "1": "true", "false": "false", "no": "false", "0": "false"}
+
+
+def synthetic_status(value, where: str) -> str:
+    """Explicit declaration only. Missing -> 'unknown'. A malformed declaration is an error, not a guess."""
+    if value is None or str(value).strip() == "":
+        return "unknown"
+    try:
+        return _SYNTH[str(value).strip().lower()]
+    except KeyError:
+        raise ParseError(f"{where}: 'synthetic' must be true or false, got '{value}'") from None
+
+
+def declared_units(meta: dict[str, str], path: Path) -> dict[str, str]:
+    """'# units: col=unit, col2=unit2' header line -> {col: unit}."""
+    raw = meta.get("units", "")
+    out = {}
+    for part in (p for p in raw.split(",") if p.strip()):
+        col, sep, unit = part.partition("=")
+        if not sep or not col.strip() or not unit.strip() or "=" in unit:
+            raise ParseError(f"'{Path(path).name}': cannot read units declaration '{part.strip()}' (use 'col=unit' pairs separated by commas)")
+        out[col.strip()] = unit.strip()
+    return out
+
+
 def csv_columns(path: Path) -> list[str]:
     try:
         return list(pd.read_csv(path, comment="#", nrows=0).columns)
@@ -238,7 +263,7 @@ def _iso(value) -> str:
 
 
 def set_dataset_attrs(ds: xr.Dataset, *, mapping: SourceMapping, parser_name: str, path: Path, sha: str,
-                      title: str, institution: str, license_: str, platform_id: str, is_synthetic: bool,
+                      title: str, institution: str, license_: str, platform_id: str, is_synthetic: str,
                       source: str, time_values=None, lat_values=None, lon_values=None,
                       depth_values=None, instrument: str | None = None, extra: dict | None = None) -> xr.Dataset:
     """Fill every dataset-level attribute that docs/data_model.md section 5 requires."""
@@ -261,8 +286,8 @@ def set_dataset_attrs(ds: xr.Dataset, *, mapping: SourceMapping, parser_name: st
         "platform_type": mapping["platform_type"],
         "platform_id": platform_id,
         "instrument": instrument or mapping.get("instrument", ""),
-        "data_mode": "synthetic" if is_synthetic else mapping["data_mode_default"],
-        "is_synthetic": "true" if is_synthetic else "false",
+        "data_mode": "synthetic" if is_synthetic == "true" else mapping["data_mode_default"],
+        "is_synthetic": is_synthetic,
         "license": license_,
         "time_coverage_start": _iso(t.min()) if t.size else "not applicable",
         "time_coverage_end": _iso(t.max()) if t.size else "not applicable",
@@ -288,8 +313,8 @@ def set_dataset_attrs(ds: xr.Dataset, *, mapping: SourceMapping, parser_name: st
     return ds
 
 
-def provenance_defaults(is_synthetic: bool, institution: str | None, license_: str | None) -> tuple[str, str]:
-    if is_synthetic:
+def provenance_defaults(is_synthetic: str, institution: str | None, license_: str | None) -> tuple[str, str]:
+    if is_synthetic == "true":
         return institution or "none (synthetic)", license_ or "synthetic test data, no restrictions"
     return institution or "unknown (not stated in file)", license_ or "unknown (not stated in file)"
 

@@ -3,7 +3,7 @@ from __future__ import annotations
 
 import json
 import math
-from dataclasses import dataclass, field
+from dataclasses import dataclass
 from pathlib import Path
 
 import numpy as np
@@ -12,11 +12,11 @@ import psycopg2
 import psycopg2.extras as pgx
 
 from scats_common import MODEL
-from scats_parsers import ParseError, parse_file
+from scats_parsers import parse_file
 from scats_qc import load_config, run_qc
 
 from . import rules
-from .staging import slug, write_staging
+from .staging import commit_staging, discard_temp_staging, slug, staging_path, write_temp_staging
 
 ACTOR = "scats_ingest"
 
@@ -118,23 +118,55 @@ def _audit(cur, action: str, key: str, before, after, comment: str):
         (ACTOR, action, key, None if before is None else _dumps(before), _dumps(after), comment))
 
 
-def ingest_file(path: Path | str, *, db_url: str, staging_dir: Path | str, cfg: dict | None = None) -> IngestResult:
-    path = Path(path)
-    cfg = cfg or load_config()
-    ds = parse_file(path)                                     # ParseError propagates to the caller
-    report = run_qc(ds, cfg)
-    key = dataset_key_for(path)
-    overall = rules.overall_flags(ds)
-    rows = rules.expected_rows(ds)
-    staged = write_staging(ds, staging_dir, key)
-
+def _existing_reference_time(db_url: str, key: str) -> str | None:
     con = psycopg2.connect(db_url)
     try:
-        with con:                                             # one transaction: all or nothing
-            with con.cursor() as cur:
-                return _write(cur, ds, report, cfg, path, key, staged, overall, rows)
+        with con, con.cursor() as cur:
+            cur.execute("SELECT attributes->>'qc_reference_time' FROM dataset WHERE dataset_key = %s", (key,))
+            row = cur.fetchone()
+            return row[0] if row else None
     finally:
         con.close()
+
+
+def ingest_file(path: Path | str, *, db_url: str, staging_dir: Path | str, cfg: dict | None = None,
+                tests=None, reference_time: str | None = None) -> IngestResult:
+    """Parse -> QC -> database -> staging file.
+
+    Order matters (review finding): the staging file is written under a temporary name, the database transaction is
+    committed, and only then is the file renamed into place. A rejected or failed ingest therefore leaves both the
+    previous staging file and the database as they were. If the rename itself fails after the commit, the database is
+    ahead of staging; IngestError says so and verify_flag_consistency() reports it.
+    """
+    path = Path(path)
+    cfg = cfg or load_config()
+    key = dataset_key_for(path)
+    # Same file + same reference time = same QC result. The reference time of the first ingest is kept for re-ingests.
+    reference_time = reference_time or _existing_reference_time(db_url, key) or \
+        pd.Timestamp.now("UTC").strftime("%Y-%m-%dT%H:%M:%SZ")
+    ds = parse_file(path)                                     # ParseError propagates to the caller
+    report = run_qc(ds, cfg, tests=tests, reference_time=reference_time)
+    overall = rules.overall_flags(ds)
+    rows = rules.expected_rows(ds)
+    tmp = write_temp_staging(ds, staging_dir, key)
+    try:
+        con = psycopg2.connect(db_url)
+        try:
+            with con:                                         # one transaction: all or nothing
+                with con.cursor() as cur:
+                    result = _write(cur, ds, report, cfg, path, key, staging_path(staging_dir, key), overall, rows)
+        finally:
+            con.close()
+    except BaseException:
+        discard_temp_staging(tmp)
+        raise
+    try:
+        commit_staging(tmp, staging_dir, key)
+    except OSError as exc:
+        discard_temp_staging(tmp)
+        raise IngestError(f"database committed but the staging file could not be written ({exc}); "
+                          f"run verify_flag_consistency('{key}') and re-ingest") from exc
+    return result
 
 
 def _write(cur, ds, report, cfg, path, key, staged, overall, rows) -> IngestResult:

@@ -42,8 +42,8 @@ def validate_dataset(ds: xr.Dataset) -> list[str]:
         value = ds.attrs.get(attr)
         if value is not None and value not in MODEL.vocabularies[attr]:
             errors.append(f"{attr} '{value}' is not in the controlled vocabulary")
-    if str(ds.attrs.get("is_synthetic", "")) not in ("true", "false"):
-        errors.append("is_synthetic must be the string 'true' or 'false'")
+    if str(ds.attrs.get("is_synthetic", "")) not in ("true", "false", "unknown"):
+        errors.append("is_synthetic must be the string 'true', 'false' or 'unknown'")
 
     # ---- structure
     dtype = ds.attrs.get("dataset_type")

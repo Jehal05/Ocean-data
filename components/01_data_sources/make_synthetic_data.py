@@ -142,7 +142,7 @@ def make_argo(out: Path, rng):
         },
         attrs={"title": "Synthetic Argo-style profiles, Arabian Sea, 2025 Q1",
                "institution": "none (synthetic)", "source": "make_synthetic_data.py",
-               "comment": SYNTH_NOTE, "Conventions": "Argo-3.1 (style only)",
+               "comment": SYNTH_NOTE, "is_synthetic": "true", "Conventions": "Argo-3.1 (style only)",
                "history": "generated offline"},
     )
     path = out / "argo_profiles" / "argo_synthetic_arabian_sea_2025Q1.nc"
@@ -174,8 +174,8 @@ def make_ship_ctd(out: Path, rng):
     path = out / "ship_ctd" / "ctd_casts_synthetic_arabian_sea_2025.csv"
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", newline="") as fh:
-        fh.write(f"# {SYNTH_NOTE}\n# cruise: SYN-CRUISE-2025-02\n# fill_value: -999\n")
-        fh.write("# units: depth_m=m temp_C=degC sal_PSU=PSS-78 sound_vel_m_s=m/s\n")
+        fh.write(f"# {SYNTH_NOTE}\n# synthetic: true\n# cruise: SYN-CRUISE-2025-02\n# fill_value: -999\n")
+        fh.write("# units: depth_m=m, temp_C=degC, sal_PSU=PSS-78, sound_vel_m_s=m/s\n")
         df.to_csv(fh, index=False, lineterminator="\n")
     return path, len(df)
 
@@ -204,7 +204,7 @@ def make_sst(out: Path, rng):
         coords={"time": time, "lat": ("lat", lat, {"units": "degrees_north", "standard_name": "latitude"}),
                 "lon": ("lon", lon, {"units": "degrees_east", "standard_name": "longitude"})},
         attrs={"title": "Synthetic gridded SST, 0.25 deg daily", "Conventions": "CF-1.8",
-               "comment": SYNTH_NOTE, "source": "make_synthetic_data.py"})
+               "comment": SYNTH_NOTE, "is_synthetic": "true", "source": "make_synthetic_data.py"})
     path = out / "sst_grid" / "sst_synthetic_0p25deg_2025Q1.nc"
     path.parent.mkdir(parents=True, exist_ok=True)
     # packed int16 like GHRSST products: tests scale_factor/add_offset/_FillValue decoding
@@ -241,7 +241,9 @@ def make_buoy(out: Path, rng):
     path = out / "buoy_met_wave" / "buoy_met_wave_synthetic_2025Q1.csv"
     path.parent.mkdir(parents=True, exist_ok=True)
     with open(path, "w", newline="") as fh:
-        fh.write(f"# {SYNTH_NOTE}\n# platform: SYN-BUOY-01\n# fill_value: -999\n")
+        fh.write(f"# {SYNTH_NOTE}\n# synthetic: true\n# platform: SYN-BUOY-01\n# fill_value: -999\n")
+        fh.write("# units: wspd_ms=m s-1, wdir_deg=degree, airtemp_C=degC, rh_pct=%, slp_hPa=hPa, hs_m=m, tp_s=s, "
+                 "mwdir_deg=degree, sst_C=degC, cur_speed_cm_s=cm s-1, cur_dir_deg=degree\n")
         df.to_csv(fh, index=False, lineterminator="\n")
     return path, n
 
@@ -266,7 +268,7 @@ def make_bathymetry(out: Path, rng):
         coords={"lat": ("lat", lat, {"units": "degrees_north", "standard_name": "latitude"}),
                 "lon": ("lon", lon, {"units": "degrees_east", "standard_name": "longitude"})},
         attrs={"title": "Synthetic bathymetry, 0.1 deg", "Conventions": "CF-1.8",
-               "comment": SYNTH_NOTE, "source": "make_synthetic_data.py"})
+               "comment": SYNTH_NOTE, "is_synthetic": "true", "source": "make_synthetic_data.py"})
     path = out / "bathymetry" / "bathymetry_synthetic_0p1deg.nc"
     path.parent.mkdir(parents=True, exist_ok=True)
     ds.to_netcdf(path)

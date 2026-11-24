@@ -1,9 +1,9 @@
-# Phase 2 QC score
+# Phase 2 QC score (original error set)
 
 Database: local stand-in PostgreSQL 16 WITHOUT PostGIS (tests/db_stub.py)
-QC config version: 0.1.0
+QC config version: 0.2.0
 
-**Recall: 24/24**   |   false positives in error files: 18   |   flags 3/4 on the five clean raw files: 0
+**Recall: 24/24**   |   false positives in error files: 18   |   collateral density flags: 21 around 11 culprit cells   |   flags 3/4 on the five clean raw files: 0
 
 | Error type | Detected | Total |
 |---|---|---|
@@ -16,9 +16,17 @@ QC config version: 0.1.0
 | timestamp_duplicate | 2 | 2 |
 | timestamp_non_monotonic | 2 | 2 |
 
-Persisted test equals the key's expected primary test: 24/24
+| Magnitude band | Correct | Total |
+|---|---|---|
+| unbanded | 24 | 24 |
+
+Expected primary test fired on the cell (any finding, not only the winner): 24/24
 
 ## Misses
+
+none
+
+## Negative controls flagged (should have been left alone)
 
 none
 
@@ -51,4 +59,4 @@ none
 * ctd_casts_synthetic_arabian_sea_2025.csv: 0
 * sst_synthetic_0p25deg_2025Q1.nc: 0
 
-Synthetic data only. A perfect score here shows the tests work on planted errors of the kinds I chose, not that they work on real observations.
+Synthetic data, written by the same author as the tests. A good score shows the code does what its author intended on planted errors of the kinds chosen, not that it works on real observations.

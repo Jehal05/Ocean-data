@@ -1,8 +1,13 @@
 """Parser API (Phase 2): list parsers, ingest a file, read a dataset's QC summary.
 
 Runs as the least-privilege database role scats_ingest, never as the superuser.
-POST /ingest changes data. It is bound to localhost by docker-compose and, when INGEST_API_KEY is set,
-requires the header X-API-Key. Real authentication and roles arrive with the review UI (Phase 3).
+Access rule (safe by default):
+  * POST /ingest changes data. With INGEST_API_KEY empty it is DISABLED (503). Set a key and send it as X-API-Key.
+    INGEST_ALLOW_ANONYMOUS=true re-opens it without a key: development on a trusted machine only.
+  * GET /datasets/{key}/qc-summary needs the same key whenever one is set. With no key set it is readable (read-only,
+    bound to localhost by docker-compose).
+  * /health and /parsers are always open.
+Real authentication and roles arrive with the review UI (Phase 3).
 """
 from __future__ import annotations
 
@@ -19,7 +24,15 @@ from scats_parsers import ParseError, parsers
 from scats_parsers.base import __version__ as PARSER_VERSION
 from scats_qc import ALL_TESTS, load_config
 
-app = FastAPI(title="SCATS Parser API", version="0.2.0")
+LIMITS = [
+    "The spike test cannot see the first and last record of a profile or series; they get range tests only.",
+    "timestamp_monotonic cannot tell which record is wrong when two consecutive records are wrong or a pair is swapped: it flags both as ambiguous. A forward jump on the last record is invisible.",
+    "density_inversion flags both levels of the offending pair, so a single bad value can earn soft flag 3 on its neighbours.",
+    "When units_assumed_from_mapping is true, the file did not declare its units and the YAML mapping was trusted.",
+    "Regional ranges and the buoy spike thresholds are engineering judgement; the Argo-derived thresholds were recalled from memory. All are open questions for NPOL.",
+]
+
+app = FastAPI(title="SCATS Parser API", version="0.3.0")
 
 
 def settings() -> dict:
@@ -28,13 +41,25 @@ def settings() -> dict:
         "staging_dir": Path(os.getenv("STAGING_DIR", "/srv/staging")),
         "allowed_dirs": [Path(p).resolve() for p in os.getenv("INGEST_ALLOWED_DIRS", "/srv/data").split(os.pathsep) if p],
         "api_key": os.getenv("INGEST_API_KEY", ""),
+        "allow_anonymous": os.getenv("INGEST_ALLOW_ANONYMOUS", "").lower() == "true",
     }
 
 
+def _check_key(x_api_key: str | None, *, write: bool):
+    s = settings()
+    if s["api_key"]:
+        if not hmac.compare_digest(s["api_key"], x_api_key or ""):
+            raise HTTPException(401, "missing or wrong X-API-Key")
+    elif write and not s["allow_anonymous"]:
+        raise HTTPException(503, "ingest disabled: set INGEST_API_KEY (or INGEST_ALLOW_ANONYMOUS=true for development)")
+
+
 def require_key(x_api_key: str | None = Header(default=None)):
-    key = settings()["api_key"]
-    if key and not hmac.compare_digest(key, x_api_key or ""):
-        raise HTTPException(401, "missing or wrong X-API-Key")
+    _check_key(x_api_key, write=True)
+
+
+def read_key(x_api_key: str | None = Header(default=None)):
+    _check_key(x_api_key, write=False)
 
 
 def resolve_allowed(raw: str) -> Path:
@@ -94,7 +119,7 @@ def ingest(req: IngestRequest):
     return {**result.__dict__, "flag_consistency_ok": check.ok}
 
 
-@app.get("/datasets/{dataset_key}/qc-summary")
+@app.get("/datasets/{dataset_key}/qc-summary", dependencies=[Depends(read_key)])
 def qc_summary(dataset_key: str):
     try:
         con = psycopg2.connect(settings()["db_url"], connect_timeout=3)
@@ -102,12 +127,13 @@ def qc_summary(dataset_key: str):
         raise HTTPException(503, "database unavailable")
     try:
         with con, con.cursor() as cur:
-            cur.execute("SELECT dataset_id, dataset_type, status, is_synthetic FROM dataset WHERE dataset_key = %s",
-                        (dataset_key,))
+            cur.execute("SELECT dataset_id, dataset_type, status, attributes->>'is_synthetic',"
+                        " attributes->>'units_assumed_from_mapping', attributes->>'qc_reference_time'"
+                        " FROM dataset WHERE dataset_key = %s", (dataset_key,))
             row = cur.fetchone()
             if row is None:
                 raise HTTPException(404, f"dataset '{dataset_key}' not found")
-            did, dtype, status, synthetic = row
+            did, dtype, status, synthetic, units_assumed, ref_time = row
             cur.execute("SELECT count(*), COALESCE(max(overall_flag), 0) FROM observation WHERE dataset_id = %s", (did,))
             n_obs, worst = cur.fetchone()
             cur.execute("SELECT overall_flag, count(*) FROM observation WHERE dataset_id = %s GROUP BY 1 ORDER BY 1", (did,))
@@ -125,8 +151,13 @@ def qc_summary(dataset_key: str):
             cfg = cur.fetchone()
     finally:
         con.close()
-    return {"dataset_key": dataset_key, "dataset_type": dtype, "status": status, "is_synthetic": synthetic,
+    return {"dataset_key": dataset_key, "dataset_type": dtype, "status": status,
+            "synthetic_status": synthetic or "unknown",           # true / false / unknown: declared by the provider, never guessed
+            "is_synthetic": synthetic == "true",
+            "units_assumed_from_mapping": units_assumed == "true",
+            "qc_reference_time": ref_time,
             "observations": n_obs, "worst_overall_flag": int(worst), "observations_by_overall_flag": overall,
             "persisted_flags_by_value": by_flag, "persisted_flags_by_test": by_test,
             "persisted_flags_by_variable": by_var, "qc_config_version": cfg[0] if cfg else None,
+            "limits": LIMITS,
             "note": "flags 0 and 1 are not stored per cell; grids store summary rows (see docs/phase2_design.md)"}

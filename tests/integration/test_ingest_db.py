@@ -3,7 +3,6 @@ import shutil
 import warnings
 from pathlib import Path
 
-import numpy as np
 import psycopg2
 import pytest
 

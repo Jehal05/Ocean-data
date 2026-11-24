@@ -3,7 +3,6 @@ from __future__ import annotations
 
 import numpy as np
 import pandas as pd
-import xarray as xr
 
 from scats_common import MODEL
 from scats_common.flags import MISSING
@@ -205,17 +204,34 @@ class TimestampValid(QCTest):
         t = ds["time"].values.astype("datetime64[ns]")
         spec = cfg["timestamp_valid"]
         earliest = np.datetime64(spec["earliest"], "ns")
-        latest = (pd.Timestamp.now("UTC").tz_localize(None) + pd.Timedelta(days=spec["future_days"])).to_datetime64()
+        # The reference time is an INPUT (recorded with the run), never read from the clock here, so the same file
+        # and the same reference time always give the same result.
+        ref = cfg.get("_reference_time") or spec["latest_without_reference"]
+        latest = (pd.Timestamp(ref).tz_localize(None) if pd.Timestamp(ref).tzinfo is None else
+                  pd.Timestamp(ref).tz_convert("UTC").tz_localize(None)) + pd.Timedelta(days=spec["future_days"] if cfg.get("_reference_time") else 0)
+        latest = latest.to_datetime64()
         ok = ~np.isnat(t)
         res.covered["time"] = ok
         out = ok & ((t < earliest) | (t > latest))
         for idx in zip(*np.nonzero(out)):
             res.findings.append(self.finding(cfg, "time", idx, {
-                "observed": str(t[idx]), "earliest": spec["earliest"], "latest_allowed": str(latest)[:10]}))
+                "observed": str(t[idx]), "earliest": spec["earliest"], "latest_allowed": str(latest)[:10],
+                "reference_time": cfg.get("_reference_time") or "none given: absolute fallback used"}))
         return res
 
 
 class TimestampMonotonic(QCTest):
+    """Finds the record that breaks time order, not just the place where the order breaks.
+
+    For each adjacent pair (p, i) in a platform group with t_i <= t_p, the outer neighbours decide who is wrong:
+    pp (before p) and n (after i). A record is *consistent* if it lies strictly between them.
+      duplicate (t_i == t_p)               -> later record flagged (kind duplicate)
+      p consistent, i not                  -> i flagged   (backward step)
+      i consistent, p not                  -> p flagged   (forward jump)
+      both or neither consistent           -> BOTH flagged, detail.ambiguous = true
+    Cannot resolve: two or more consecutive wrong records, swapped pairs; a forward jump on the last record,
+    or a wrong first record that is still earlier than the second, break no order and are invisible.
+    """
     test_id, category, severity = "timestamp_monotonic", "timestamp", "hard"
     description = "Timestamps duplicated or not increasing."
 
@@ -230,15 +246,32 @@ class TimestampMonotonic(QCTest):
         order = ds["source_record"].values if "source_record" in ds else np.arange(t.size)
         covered = np.zeros(t.size, dtype=bool)
         for g in dict.fromkeys(groups.tolist()):
-            members = np.flatnonzero(groups == g)
-            members = members[np.argsort(order[members], kind="stable")]
-            members = members[~np.isnat(t[members])]
-            for prev, cur in zip(members[:-1], members[1:]):
-                covered[cur] = True
-                if t[cur] <= t[prev]:
-                    res.findings.append(self.finding(cfg, "time", (cur,), {
-                        "kind": "duplicate" if t[cur] == t[prev] else "decreasing",
-                        "observed": str(t[cur]), "previous": str(t[prev]), "group": g}))
+            m = np.flatnonzero(groups == g)
+            m = m[np.argsort(order[m], kind="stable")]
+            m = m[~np.isnat(t[m])]
+            covered[m[1:]] = True
+            flagged: dict[int, dict] = {}
+            for k in range(1, len(m)):
+                p, i = m[k - 1], m[k]
+                if t[i] > t[p]:
+                    continue
+                pp = m[k - 2] if k >= 2 else None
+                n = m[k + 1] if k + 1 < len(m) else None
+                def consistent(x):
+                    return (pp is None or t[x] > t[pp]) and (n is None or t[x] < t[n])
+                if t[i] == t[p]:
+                    flagged[i] = {"kind": "duplicate", "ambiguous": False}
+                elif consistent(p) and not consistent(i):
+                    flagged[i] = {"kind": "decreasing", "ambiguous": False}
+                elif consistent(i) and not consistent(p):
+                    flagged[p] = {"kind": "jump_forward", "ambiguous": False}
+                else:
+                    for x in (p, i):
+                        flagged[x] = {"kind": "out_of_order", "ambiguous": True}
+            for x, info in flagged.items():
+                res.findings.append(self.finding(cfg, "time", (x,), {
+                    **info, "observed": str(t[x]), "group": g,
+                    "note": "cannot tell which of two records is wrong" if info["ambiguous"] else "identified from the outer neighbours"}))
         res.covered["time"] = covered
         return res
 

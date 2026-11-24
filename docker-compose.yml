@@ -86,7 +86,8 @@ services:
       DATABASE_URL: postgresql://scats_ingest:${INGEST_DB_PASSWORD:-scats_ingest_dev_pw}@db:5432/${POSTGRES_DB:-scats}
       STAGING_DIR: /srv/staging
       INGEST_ALLOWED_DIRS: /srv/data
-      INGEST_API_KEY: ${INGEST_API_KEY:-}
+      INGEST_API_KEY: ${INGEST_API_KEY:-}                # empty = POST /ingest is disabled (set one in .env)
+      INGEST_ALLOW_ANONYMOUS: ${INGEST_ALLOW_ANONYMOUS:-false}   # development only
     volumes:
       - ./data:/srv/data:ro                            # raw and test files, read-only
       - stagingdata:/srv/staging

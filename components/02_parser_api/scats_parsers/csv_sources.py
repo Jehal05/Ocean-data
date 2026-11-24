@@ -9,7 +9,7 @@ import xarray as xr
 from scats_common import units as U
 from .base import (Parser, ParseError, add_data_variable, aux_variables, convert_units, csv_columns,
                    depth_to_pressure, initial_flags, numeric_column, provenance_defaults, read_csv_header,
-                   read_csv_table, register, set_dataset_attrs, sha256_of)
+                   read_csv_table, register, set_dataset_attrs, sha256_of, declared_units, synthetic_status)
 
 
 def _fill_values(m, meta) -> list[float]:
@@ -43,7 +43,7 @@ class ShipCtdCsvParser(Parser):
 
     def parse(self, path: Path) -> xr.Dataset:
         m, path = self.mapping(), Path(path)
-        meta, header = read_csv_header(path)
+        meta, _header = read_csv_header(path)
         df, sha = read_csv_table(path), sha256_of(path)
         c = m["columns"]
         _require(df, list(c.values()), path)
@@ -71,13 +71,17 @@ class ShipCtdCsvParser(Parser):
         pressure = depth_to_pressure(depth, lat)
         data_vars: dict = {}
         mapped = set(c.values())
+        declared, assumed = declared_units(meta, path), []
         for src, spec in m["variables"].items():
             if src not in df.columns:
                 continue
             mapped.add(src)
-            values = convert_units(to_grid(numeric_column(df[src], fills)), spec["source_units"], spec["name"], src)
+            unit = declared.get(src) or spec["source_units"]
+            if src not in declared:
+                assumed.append(src)
+            values = convert_units(to_grid(numeric_column(df[src], fills)), unit, spec["name"], src)
             add_data_variable(data_vars, spec["name"], ("profile", "level"), values, initial_flags(values), src,
-                              spec["source_units"], "time latitude longitude depth")
+                              unit, "time latitude longitude depth")
         if not data_vars:
             raise ParseError(f"'{path.name}' has no mapped data column")
 
@@ -85,13 +89,15 @@ class ShipCtdCsvParser(Parser):
         data_vars.update(aux_variables("profile", time=times, lat=lat, lon=lon, platform_id=order,
                                        platform_group=[group] * n_prof, depth=depth, pressure=pressure))
         ds = xr.Dataset(data_vars)
-        synthetic = "SYNTHETIC" in header.upper()
+        synthetic = synthetic_status(meta.get("synthetic"), path.name)
         institution, license_ = provenance_defaults(synthetic, meta.get("institution"), meta.get("license"))
         return set_dataset_attrs(
             ds, mapping=m, parser_name=self.name, path=path, sha=sha, is_synthetic=synthetic, title=path.stem,
             institution=institution, license_=license_, source=meta.get("source", "unknown"), platform_id=group,
             time_values=times, lat_values=lat, lon_values=lon, depth_values=depth,
-            extra={"ignored_columns": ",".join(sorted(set(df.columns) - mapped)) or "none"})
+            extra={"ignored_columns": ",".join(sorted(set(df.columns) - mapped)) or "none",
+                   "units_assumed_from_mapping": "true" if assumed else "false",
+                   "units_declared": ", ".join(f"{k}={v}" for k, v in declared.items()) or "none"})
 
 
 @register
@@ -105,7 +111,7 @@ class BuoyCsvParser(Parser):
 
     def parse(self, path: Path) -> xr.Dataset:
         m, path = self.mapping(), Path(path)
-        meta, header = read_csv_header(path)
+        meta, _header = read_csv_header(path)
         df, sha = read_csv_table(path), sha256_of(path)
         c = m["columns"]
         _require(df, list(c.values()), path)
@@ -116,13 +122,17 @@ class BuoyCsvParser(Parser):
         times = U.parse_iso_utc(df[c["time"]].tolist())
         data_vars: dict = {}
         mapped = set(c.values())
+        declared, assumed = declared_units(meta, path), []
         for src, spec in m["variables"].items():
             if src not in df.columns:
                 continue
             mapped.add(src)
-            values = convert_units(numeric_column(df[src], fills), spec["source_units"], spec["name"], src)
+            unit = declared.get(src) or spec["source_units"]
+            if src not in declared:
+                assumed.append(src)
+            values = convert_units(numeric_column(df[src], fills), unit, spec["name"], src)
             add_data_variable(data_vars, spec["name"], ("record",), values, initial_flags(values), src,
-                              spec["source_units"], "time latitude longitude")
+                              unit, "time latitude longitude")
         if not data_vars:
             raise ParseError(f"'{path.name}' has no mapped data column")
 
@@ -131,10 +141,12 @@ class BuoyCsvParser(Parser):
         data_vars.update(aux_variables("record", time=times, lat=lat, lon=lon, platform_id=[platform] * n,
                                        platform_group=[platform] * n))
         ds = xr.Dataset(data_vars)
-        synthetic = "SYNTHETIC" in header.upper()
+        synthetic = synthetic_status(meta.get("synthetic"), path.name)
         institution, license_ = provenance_defaults(synthetic, meta.get("institution"), meta.get("license"))
         return set_dataset_attrs(
             ds, mapping=m, parser_name=self.name, path=path, sha=sha, is_synthetic=synthetic, title=path.stem,
             institution=institution, license_=license_, source=meta.get("source", "unknown"), platform_id=platform,
             time_values=times, lat_values=lat, lon_values=lon,
-            extra={"ignored_columns": ",".join(sorted(set(df.columns) - mapped)) or "none"})
+            extra={"ignored_columns": ",".join(sorted(set(df.columns) - mapped)) or "none",
+                   "units_assumed_from_mapping": "true" if assumed else "false",
+                   "units_declared": ", ".join(f"{k}={v}" for k, v in declared.items()) or "none"})

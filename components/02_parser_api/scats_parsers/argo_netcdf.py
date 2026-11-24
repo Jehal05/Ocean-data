@@ -7,11 +7,10 @@ from pathlib import Path
 import numpy as np
 import xarray as xr
 
-from scats_common import MODEL
 from scats_common import units as U
 from .base import (Parser, ParseError, add_data_variable, aux_variables, convert_units, initial_flags,
                    netcdf_has, open_netcdf, pressure_to_depth, provenance_defaults, register, set_dataset_attrs,
-                   sha256_of)
+                   sha256_of, synthetic_status)
 
 
 def _decode_text(arr) -> list[str]:
@@ -66,9 +65,14 @@ class ArgoNetCDFParser(Parser):
 
         data_vars: dict = {}
         coords_attr = "time latitude longitude depth"
+        assumed: list[str] = []
+        if not raw[pres_src].attrs.get("units"):
+            assumed.append(pres_src)
         for src, spec in m["variables"].items():
             if src not in raw:
                 continue
+            if not raw[src].attrs.get("units"):
+                assumed.append(src)
             units = raw[src].attrs.get("units") or spec["source_units"]
             values = convert_units(raw[src].values.astype("float64"), units, spec["name"], src)
             prov = None
@@ -83,8 +87,7 @@ class ArgoNetCDFParser(Parser):
                                        platform_group=platforms, depth=depth, pressure=pressure))
         ds = xr.Dataset(data_vars)
 
-        text = " ".join(str(v) for v in raw.attrs.values()).upper()
-        synthetic = "SYNTHETIC" in text
+        synthetic = synthetic_status(raw.attrs.get("is_synthetic"), path.name)
         unique = sorted(set(platforms))
         institution, license_ = provenance_defaults(synthetic, raw.attrs.get("institution"), raw.attrs.get("license"))
         return set_dataset_attrs(
@@ -92,4 +95,5 @@ class ArgoNetCDFParser(Parser):
             title=str(raw.attrs.get("title", path.stem)), institution=institution, license_=license_,
             source=str(raw.attrs.get("source", "unknown")),
             platform_id=unique[0] if len(unique) == 1 else f"multiple ({len(unique)} platforms)",
-            time_values=times, lat_values=lat, lon_values=lon, depth_values=depth)
+            time_values=times, lat_values=lat, lon_values=lon, depth_values=depth,
+            extra={"units_assumed_from_mapping": "true" if assumed else "false"})

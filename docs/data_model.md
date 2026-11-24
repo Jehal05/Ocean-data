@@ -81,7 +81,7 @@ New values are added by an admin and recorded in the audit log.
 | `platform_type`, `platform_id` | Yes | From the vocabulary, plus the float/buoy/cast id |
 | `instrument` | If known | Sensor or product name |
 | `data_mode` | Yes | From the vocabulary |
-| `is_synthetic` | Yes | `true` for generated test data, so it can never be mistaken for observation |
+| `is_synthetic` | Yes | `true` for generated test data, so it can never be mistaken for observation. Always an explicit declaration by the data provider (`# synthetic: true` in a CSV header, global attribute `is_synthetic` in NetCDF); `unknown` when the file does not say. It is never guessed from the text of the file |
 | `license` | Yes | Terms of use |
 | `time_coverage_start`, `time_coverage_end` | Yes | ISO 8601 UTC |
 | `geospatial_lat_min/max`, `geospatial_lon_min/max` | Yes | Bounding box |

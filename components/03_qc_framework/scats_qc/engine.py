@@ -38,12 +38,14 @@ def flag_name(variable: str) -> str:
     return "position_qc" if variable == "position" else "time_qc" if variable == "time" else f"{variable}_qc"
 
 
-def run_qc(ds: xr.Dataset, cfg: dict | None = None, tests: list[QCTest] | None = None) -> QCReport:
+def run_qc(ds: xr.Dataset, cfg: dict | None = None, tests: list[QCTest] | None = None,
+           reference_time: str | None = None) -> QCReport:
     """Apply every test; update `<variable>_qc` arrays in place; return the findings.
 
     Safe to run twice: findings do not depend on earlier flags, and flags only combine upward.
     """
-    cfg = cfg or load_config()
+    cfg = dict(cfg or load_config())
+    cfg["_reference_time"] = reference_time
     tests = tests or [t() for t in ALL_TESTS]
     report = QCReport(config_version=cfg["version"], tests_run=[t.test_id for t in tests])
     covered: dict[str, np.ndarray] = {}
@@ -64,4 +66,6 @@ def run_qc(ds: xr.Dataset, cfg: dict | None = None, tests: list[QCTest] | None =
             arr[mask & (arr == F.NO_QC)] = F.GOOD
     ds.attrs["qc_config_version"] = cfg["version"]
     ds.attrs["qc_tests_applied"] = ",".join(report.tests_run)
+    if reference_time:
+        ds.attrs["qc_reference_time"] = reference_time
     return report

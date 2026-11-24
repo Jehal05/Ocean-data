@@ -1,0 +1,297 @@
+{
+  "set": "blind",
+  "database": "local stand-in PostgreSQL 16 WITHOUT PostGIS (tests/db_stub.py)",
+  "qc_config_version": "0.2.0",
+  "key_rows_to_detect": 47,
+  "detected": 47,
+  "recall": "47/47",
+  "per_type": {
+    "spike": {
+      "total": 16,
+      "detected": 16
+    },
+    "out_of_range": {
+      "total": 9,
+      "detected": 9
+    },
+    "missing": {
+      "total": 5,
+      "detected": 5
+    },
+    "position_on_land": {
+      "total": 2,
+      "detected": 2
+    },
+    "position_invalid": {
+      "total": 2,
+      "detected": 2
+    },
+    "timestamp_jump_forward": {
+      "total": 2,
+      "detected": 2
+    },
+    "timestamp_duplicate": {
+      "total": 2,
+      "detected": 2
+    },
+    "timestamp_non_monotonic": {
+      "total": 6,
+      "detected": 6
+    },
+    "density_inversion": {
+      "total": 3,
+      "detected": 3
+    }
+  },
+  "per_magnitude_band": {
+    "just_above": {
+      "total": 17,
+      "correct": 17
+    },
+    "well_above": {
+      "total": 2,
+      "correct": 2
+    },
+    "just_above_global": {
+      "total": 9,
+      "correct": 9
+    },
+    "just_inside_global": {
+      "total": 2,
+      "correct": 2
+    },
+    "n/a": {
+      "total": 13,
+      "correct": 13
+    },
+    "swapped_pair": {
+      "total": 4,
+      "correct": 4
+    },
+    "below_threshold": {
+      "total": 11,
+      "correct": 11
+    }
+  },
+  "misses": [],
+  "negative_control_false_alarms": [],
+  "expected_primary_test_fired_on_the_cell": "47/47",
+  "false_positives_in_error_files": 36,
+  "false_positives_by_test": {
+    "density_inversion": 36
+  },
+  "false_positive_examples": [
+    {
+      "file": "argo_blind_errors.nc",
+      "record": 0,
+      "variable": "salinity",
+      "level": 7,
+      "flag": 3,
+      "test": "density_inversion"
+    },
+    {
+      "file": "argo_blind_errors.nc",
+      "record": 0,
+      "variable": "salinity",
+      "level": 8,
+      "flag": 3,
+      "test": "density_inversion"
+    },
+    {
+      "file": "argo_blind_errors.nc",
+      "record": 0,
+      "variable": "temperature",
+      "level": 7,
+      "flag": 3,
+      "test": "density_inversion"
+    },
+    {
+      "file": "argo_blind_errors.nc",
+      "record": 1,
+      "variable": "salinity",
+      "level": 69,
+      "flag": 3,
+      "test": "density_inversion"
+    },
+    {
+      "file": "argo_blind_errors.nc",
+      "record": 1,
+      "variable": "salinity",
+      "level": 70,
+      "flag": 3,
+      "test": "density_inversion"
+    },
+    {
+      "file": "argo_blind_errors.nc",
+      "record": 1,
+      "variable": "temperature",
+      "level": 69,
+      "flag": 3,
+      "test": "density_inversion"
+    },
+    {
+      "file": "argo_blind_errors.nc",
+      "record": 2,
+      "variable": "salinity",
+      "level": 13,
+      "flag": 3,
+      "test": "density_inversion"
+    },
+    {
+      "file": "argo_blind_errors.nc",
+      "record": 2,
+      "variable": "temperature",
+      "level": 12,
+      "flag": 3,
+      "test": "density_inversion"
+    },
+    {
+      "file": "argo_blind_errors.nc",
+      "record": 2,
+      "variable": "temperature",
+      "level": 13,
+      "flag": 3,
+      "test": "density_inversion"
+    },
+    {
+      "file": "argo_blind_errors.nc",
+      "record": 3,
+      "variable": "salinity",
+      "level": 67,
+      "flag": 3,
+      "test": "density_inversion"
+    },
+    {
+      "file": "argo_blind_errors.nc",
+      "record": 3,
+      "variable": "temperature",
+      "level": 66,
+      "flag": 3,
+      "test": "density_inversion"
+    },
+    {
+      "file": "argo_blind_errors.nc",
+      "record": 3,
+      "variable": "temperature",
+      "level": 67,
+      "flag": 3,
+      "test": "density_inversion"
+    },
+    {
+      "file": "argo_blind_errors.nc",
+      "record": 5,
+      "variable": "salinity",
+      "level": 29,
+      "flag": 3,
+      "test": "density_inversion"
+    },
+    {
+      "file": "argo_blind_errors.nc",
+      "record": 5,
+      "variable": "salinity",
+      "level": 30,
+      "flag": 3,
+      "test": "density_inversion"
+    },
+    {
+      "file": "argo_blind_errors.nc",
+      "record": 5,
+      "variable": "temperature",
+      "level": 29,
+      "flag": 3,
+      "test": "density_inversion"
+    },
+    {
+      "file": "argo_blind_errors.nc",
+      "record": 6,
+      "variable": "salinity",
+      "level": 41,
+      "flag": 3,
+      "test": "density_inversion"
+    },
+    {
+      "file": "argo_blind_errors.nc",
+      "record": 6,
+      "variable": "temperature",
+      "level": 40,
+      "flag": 3,
+      "test": "density_inversion"
+    },
+    {
+      "file": "argo_blind_errors.nc",
+      "record": 6,
+      "variable": "temperature",
+      "level": 41,
+      "flag": 3,
+      "test": "density_inversion"
+    },
+    {
+      "file": "argo_blind_errors.nc",
+      "record": 8,
+      "variable": "salinity",
+      "level": 50,
+      "flag": 3,
+      "test": "density_inversion"
+    },
+    {
+      "file": "argo_blind_errors.nc",
+      "record": 8,
+      "variable": "salinity",
+      "level": 51,
+      "flag": 3,
+      "test": "density_inversion"
+    },
+    {
+      "file": "argo_blind_errors.nc",
+      "record": 8,
+      "variable": "temperature",
+      "level": 51,
+      "flag": 3,
+      "test": "density_inversion"
+    },
+    {
+      "file": "argo_blind_errors.nc",
+      "record": 9,
+      "variable": "salinity",
+      "level": 26,
+      "flag": 3,
+      "test": "density_inversion"
+    },
+    {
+      "file": "argo_blind_errors.nc",
+      "record": 9,
+      "variable": "temperature",
+      "level": 25,
+      "flag": 3,
+      "test": "density_inversion"
+    },
+    {
+      "file": "argo_blind_errors.nc",
+      "record": 9,
+      "variable": "temperature",
+      "level": 26,
+      "flag": 3,
+      "test": "density_inversion"
+    },
+    {
+      "file": "ctd_blind_errors.csv",
+      "record": 0,
+      "variable": "salinity",
+      "level": 59,
+      "flag": 3,
+      "test": "density_inversion"
+    }
+  ],
+  "collateral_density_flags": 36,
+  "culprit_cells_flagged": 25,
+  "collateral_per_culprit_cell": 1.44,
+  "flags_3_or_4_on_clean_raw_files": {
+    "argo_synthetic_arabian_sea_2025Q1.nc": 0,
+    "bathymetry_synthetic_0p1deg.nc": 0,
+    "buoy_met_wave_synthetic_2025Q1.csv": 0,
+    "ctd_casts_synthetic_arabian_sea_2025.csv": 0,
+    "sst_synthetic_0p25deg_2025Q1.nc": 0
+  },
+  "clean_total": 0,
+  "note": "Detection is scored on the final persisted flag. 'expected_primary_test_fired_on_the_cell' re-runs the tests in memory and asks whether that test produced a finding on a matching cell, whichever test decided the final flag. Synthetic data written by the same author as the tests."
+}

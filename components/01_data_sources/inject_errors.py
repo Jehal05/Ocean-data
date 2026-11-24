@@ -247,7 +247,7 @@ def verify_key(out: Path):
             for n in ("ctd_casts_errors.csv", "buoy_met_wave_errors.csv")}
     num = lambda v: float(v)  # noqa: E731
     for _, k in key.iterrows():
-        ri, var, label = int(k.record_index), k.variable, f"key {k.error_id}"
+        ri, var = int(k.record_index), k.variable
         inj = k.injected_value
         if k.record_kind == "profile_index":
             if var in ("TEMP", "PSAL"):

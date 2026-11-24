@@ -1,9 +1,10 @@
 # SCATS QC configuration. Every threshold carries a rationale and a source.
 # A threshold is never chosen by looking at the test data. If one changes after results were seen,
 # the reason is recorded in docs/phase2_design.md section 8 and `history` below.
-version: "0.1.0"
+version: "0.2.0"
 history:
   - {version: "0.1.0", note: "Initial values from documented reasoning, before any QC result was seen."}
+  - {version: "0.2.0", note: "No threshold value changed. timestamp_valid takes an explicit reference time (determinism); timestamp_monotonic identifies the wrong record (method change, docs/phase2_design.md section 8)."}
 
 region:
   name: "Arabian Sea and Bay of Bengal (northern Indian Ocean)"
@@ -47,5 +48,10 @@ density_inversion:   # soft test -> flag 3
 timestamp_valid:     # hard test -> flag 4
   earliest: "1950-01-01"
   future_days: 1
-  rationale: "Start of the instrumented ocean record is well after 1950; a timestamp later than tomorrow cannot be an observation."
+  latest_without_reference: "2100-01-01"
+  rationale: >
+    The latest allowed time is reference_time + future_days, where reference_time is an explicit input of the run
+    (the ingest service passes the time of the first ingest and records it in the dataset attributes), so the result never
+    depends on the day a file is re-processed. Without a reference time only the absolute fallback applies, which catches
+    nothing but absurd dates; callers that want the future-date check must pass one.
   source: "Engineering judgement"

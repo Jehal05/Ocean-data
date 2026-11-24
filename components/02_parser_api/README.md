@@ -11,7 +11,7 @@
 | Image (build context is the repository root) | `Dockerfile` |
 
 Endpoints (port 8001): `GET /health`, `GET /parsers`, `POST /ingest {"path": ...}`, `GET /datasets/{key}/qc-summary`.
-`/ingest` reads only below `INGEST_ALLOWED_DIRS`, requires `X-API-Key` when `INGEST_API_KEY` is set, and is bound to localhost by compose. It is not real authentication; roles arrive with Phase 3.
+`/ingest` reads only below `INGEST_ALLOWED_DIRS`, requires `X-API-Key`; with `INGEST_API_KEY` empty `/ingest` returns 503 unless `INGEST_ALLOW_ANONYMOUS=true` (development only); `qc-summary` also needs the key when one is set; and is bound to localhost by compose. It is not real authentication; roles arrive with Phase 3.
 
 **Add a format:** write one `Parser` subclass (`can_parse`, `parse`), add one YAML mapping, decorate with `@register`.
 

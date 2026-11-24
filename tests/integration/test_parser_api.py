@@ -7,6 +7,7 @@ import pytest
 from fastapi.testclient import TestClient
 
 import db_stub
+from scats_qc import load_config
 
 warnings.filterwarnings("ignore")
 ROOT = Path(__file__).resolve().parents[2]
@@ -18,10 +19,10 @@ def client(tmp_path_factory):
     import os
     db_stub.start(fresh=True)
     os.environ.update(DATABASE_URL=db_stub.INGEST_URL, STAGING_DIR=str(tmp_path_factory.mktemp("staging")),
-                      INGEST_ALLOWED_DIRS=str(ROOT / "data"), INGEST_API_KEY="")
+                      INGEST_ALLOWED_DIRS=str(ROOT / "data"), INGEST_API_KEY="testkey")
     import app.main as m
     importlib.reload(m)
-    yield TestClient(m.app)
+    yield TestClient(m.app, headers={"X-API-Key": "testkey"})
     db_stub.stop()
 
 
@@ -50,7 +51,8 @@ def test_ingest_then_qc_summary(client):
     s = client.get("/datasets/buoy_met_wave_errors/qc-summary").json()
     assert s["observations"] == 168 and s["persisted_flags_by_value"] == {"3": 2, "4": 5, "9": 2}
     assert set(s["persisted_flags_by_test"]) >= {"spike", "global_range", "missing_value"}
-    assert s["qc_config_version"] == "0.1.0" and s["is_synthetic"] is True
+    assert s["qc_config_version"] == load_config()["version"] and s["synthetic_status"] == "true"
+    assert s["units_assumed_from_mapping"] is False and s["limits"]
 
 
 def test_ingest_twice_is_idempotent(client):
@@ -80,6 +82,6 @@ def test_unparseable_file_is_422_not_500(client, tmp_path):
 def test_api_key_when_configured(client, monkeypatch):
     monkeypatch.setenv("INGEST_API_KEY", "s3cret")
     p = {"path": str(ROOT / "data/test_errors/buoy_met_wave_errors.csv")}
-    assert client.post("/ingest", json=p).status_code == 401
+    assert client.post("/ingest", json=p, headers={"X-API-Key": ""}).status_code == 401
     assert client.post("/ingest", json=p, headers={"X-API-Key": "wrong"}).status_code == 401
     assert client.post("/ingest", json=p, headers={"X-API-Key": "s3cret"}).status_code == 200

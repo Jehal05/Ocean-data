@@ -8,7 +8,7 @@ import xarray as xr
 
 from scats_common import units as U
 from .base import (Parser, ParseError, add_data_variable, convert_units, flag_attrs, initial_flags, netcdf_has,
-                   open_netcdf, provenance_defaults, register, set_dataset_attrs, sha256_of)
+                   open_netcdf, provenance_defaults, register, set_dataset_attrs, sha256_of, synthetic_status)
 from scats_common.flags import MISSING
 
 
@@ -27,6 +27,7 @@ def _grid_dataset(parser: "GridParser", path: Path, with_time: bool) -> xr.Datas
 
     values = da.values.astype("float64")
     units = da.attrs.get("units") or spec["source_units"]
+    assumed = not da.attrs.get("units")
     extra: dict = {}
     if spec.get("transform") == "elevation_to_depth":
         values = U.elevation_to_depth(values)
@@ -53,9 +54,10 @@ def _grid_dataset(parser: "GridParser", path: Path, with_time: bool) -> xr.Datas
     if with_time:
         ds["time"].encoding.update(units="seconds since 1970-01-01 00:00:00", dtype="float64", _FillValue=np.nan)
 
-    synthetic = "SYNTHETIC" in " ".join(str(v) for v in raw.attrs.values()).upper()
+    synthetic = synthetic_status(raw.attrs.get("is_synthetic"), path.name)
     institution, license_ = provenance_defaults(synthetic, raw.attrs.get("institution"), raw.attrs.get("license"))
     extra["n_missing_cells"] = int(np.isnan(values).sum())
+    extra["units_assumed_from_mapping"] = "true" if assumed else "false"
     return set_dataset_attrs(
         ds, mapping=m, parser_name=parser.name, path=path, sha=sha, is_synthetic=synthetic,
         title=str(raw.attrs.get("title", path.stem)), institution=institution, license_=license_,

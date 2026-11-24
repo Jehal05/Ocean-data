@@ -1,7 +1,8 @@
 {
+  "set": "original",
   "database": "local stand-in PostgreSQL 16 WITHOUT PostGIS (tests/db_stub.py)",
-  "qc_config_version": "0.1.0",
-  "key_rows": 24,
+  "qc_config_version": "0.2.0",
+  "key_rows_to_detect": 24,
   "detected": 24,
   "recall": "24/24",
   "per_type": {
@@ -38,8 +39,15 @@
       "detected": 2
     }
   },
+  "per_magnitude_band": {
+    "unbanded": {
+      "total": 24,
+      "correct": 24
+    }
+  },
   "misses": [],
-  "persisted_test_matches_expected_primary_test": "24/24",
+  "negative_control_false_alarms": [],
+  "expected_primary_test_fired_on_the_cell": "24/24",
   "false_positives_in_error_files": 18,
   "false_positives_by_test": {
     "density_inversion": 18
@@ -190,6 +198,9 @@
       "test": "density_inversion"
     }
   ],
+  "collateral_density_flags": 21,
+  "culprit_cells_flagged": 11,
+  "collateral_per_culprit_cell": 1.91,
   "flags_3_or_4_on_clean_raw_files": {
     "argo_synthetic_arabian_sea_2025Q1.nc": 0,
     "bathymetry_synthetic_0p1deg.nc": 0,
@@ -198,5 +209,5 @@
     "sst_synthetic_0p25deg_2025Q1.nc": 0
   },
   "clean_total": 0,
-  "note": "Persisted test_id is the test that decided the final flag (worst wins), which may differ from the key's expected_primary_test when two tests flag the same cell; detection is what is scored."
+  "note": "Detection is scored on the final persisted flag. 'expected_primary_test_fired_on_the_cell' re-runs the tests in memory and asks whether that test produced a finding on a matching cell, whichever test decided the final flag. Synthetic data written by the same author as the tests."
 }

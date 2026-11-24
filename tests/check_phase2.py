@@ -2,7 +2,7 @@
 """Phase 2 acceptance check. Prints PASS / FAIL / SKIP with evidence. SKIP means "could not be verified here".
 
 Exit code 1 if anything FAILs, 2 if nothing failed but something was skipped, 0 if all passed.
-Database-backed checks use the local stand-in PostgreSQL (no PostGIS) unless Docker/Postgres isn't available.
+Includes the review-round checks (see docs/phase2_design.md section 8). Database-backed checks use the local stand-in PostgreSQL (no PostGIS) unless Docker/Postgres isn't available.
 """
 from __future__ import annotations
 
@@ -64,15 +64,87 @@ def check_named_tests():
 
 
 def check_ten_tests():
+    """Each of the ten tests must have a passing AND a failing case, found by node name and actually run."""
     from scats_qc import ALL_TESTS
-    name = "all 10 QC tests exist, each with unit tests"
-    text = (ROOT / "tests/unit/test_qc.py").read_text()
+    name = "all 10 QC tests exist, each with a passing and a failing unit case (run by node name)"
     ids = [t.test_id for t in ALL_TESTS]
-    untested = [i for i in ids if len(re.findall(rf'"{i}"', text)) < 2 and i not in ("missing_value",)]
-    untested += [i for i in ["missing_value"] if len(re.findall(r'"missing_value"', text)) < 1]
+    problems = []
+    for tid in ids:
+        for kind in ("pass", "fail"):
+            ok, last = pytest_run("tests/unit/test_qc_each.py", "-k", f"{tid}_{kind}")
+            if not ok or " 1 passed" not in last and "1 passed" not in last:
+                problems.append(f"{tid}_{kind}: {last}")
     ok, last = pytest_run("tests/unit/test_qc.py")
-    record(name, "PASS" if len(ids) == 10 and not untested and ok else "FAIL",
-           f"{len(ids)} tests: {ids}; referenced <2 times in tests: {untested or 'none'}; pytest: {last}")
+    record(name, "PASS" if len(ids) == 10 and not problems and ok else "FAIL",
+           f"{len(ids)} tests; 20 named cases run one by one, problems: {problems or 'none'}; test_qc.py: {last}")
+
+
+def check_review_fixes():
+    ok, last = pytest_run("tests/unit/test_review_fixes.py")
+    record("review fixes (time jumps, determinism, explicit synthetic status, declared units)", "PASS" if ok else "FAIL", last)
+
+
+def check_lint():
+    name = "lint: ruff check (rules F, E9) is clean"
+    if not shutil.which("ruff"):
+        r = subprocess.run([sys.executable, "-m", "pip", "install", "-q", "--break-system-packages", "ruff"], capture_output=True, text=True)
+        if r.returncode:
+            return record(name, "SKIP", "ruff not installable here")
+    r = subprocess.run(["ruff", "check", "--select", "F,E9", "--output-format", "concise", "components", "libs", "tests", "scripts"],
+                       capture_output=True, text=True, cwd=ROOT)
+    n = len([l for l in r.stdout.splitlines() if re.match(r".+:\d+:\d+:", l)])
+    record(name, "PASS" if r.returncode == 0 else "FAIL", f"{n} findings")
+
+
+def check_limits_documented():
+    name = "documented limits are present where users read them"
+    must = {
+        "components/03_qc_framework/README.md": ["cannot see the first and last record", "ambiguous", "collateral", "units_assumed_from_mapping", "engineering judgement"],
+        "docs/phase2_design.md": ["cannot see the first and last record", "ambiguous", "collateral", "units_assumed_from_mapping", "engineering judgement"],
+        "components/02_parser_api/app/main.py": ["cannot see the first and last record", "ambiguous", "neighbours", "units_assumed_from_mapping", "engineering judgement"],
+    }
+    missing = {f: [k for k in keys if k not in (ROOT / f).read_text()] for f, keys in must.items()}
+    missing = {f: m for f, m in missing.items() if m}
+    record(name, "PASS" if not missing else "FAIL", f"missing phrases: {missing or 'none'}")
+
+
+def check_mutation():
+    name = "mutation check: removing each exercised QC test makes the score worse"
+    r = subprocess.run([sys.executable, str(ROOT / "tests/mutation_check.py")], capture_output=True, text=True, cwd=ROOT)
+    if r.returncode == 2:
+        return record(name, "SKIP", r.stdout.strip()[:150])
+    rep = json.loads((ROOT / "reports/phase2_mutation_check.json").read_text())
+    stuck = [t["test_id"] for t in rep["tests"] if t["exercised_by_answer_key"] and not t["primary_fired_dropped"] and not t["recall_dropped"]]
+    unexercised = [t["test_id"] for t in rep["tests"] if not t["exercised_by_answer_key"]]
+    record(name, "PASS" if r.returncode == 0 and not stuck else "FAIL",
+           f"removal changes nothing for exercised tests: {stuck or 'none'}; recall unchanged on removal: {rep['recall_unchanged_when_removed']}; "
+           f"not exercised by the answer key (unit tests only): {unexercised}")
+
+
+def check_blind():
+    name = "blind error set (made after the config was frozen) was scored once and reported"
+    f = ROOT / "reports/phase2_blind_score.json"
+    frozen = ROOT / "reports/qc_config_frozen.sha256"
+    if not f.exists() or not frozen.exists():
+        return record(name, "FAIL", "report or frozen-config hash file missing")
+    rep = json.loads(f.read_text())
+    # One lint-only edit was made after the freeze: the unused line "import xarray as xr" was removed from tests.py
+    # (ruff F401). To prove nothing else changed, that line is put back in memory and the frozen hash is compared.
+    import hashlib
+    unchanged = True
+    for line in frozen.read_text().splitlines():
+        if not re.match(r"^[0-9a-f]{64}\s", line):
+            continue
+        want, rel = line.split(None, 1)
+        data = (ROOT / rel.strip()).read_text()
+        if rel.strip().endswith("scats_qc/tests.py"):
+            data = data.replace("import pandas as pd\n", "import pandas as pd\nimport xarray as xr\n", 1)
+        unchanged &= hashlib.sha256(data.encode()).hexdigest() == want
+    ok = unchanged
+    record(name, "PASS" if ok else "FAIL",
+           f"recall {rep['recall']}; negative controls flagged: {len(rep['negative_control_false_alarms'])}; false positives "
+           f"{rep['false_positives_in_error_files']} ({rep['false_positives_by_test']}); config, engine and test code unchanged since the freeze apart from one removed unused import: {unchanged}. "
+           f"Rerun is NOT done by this script (the blind set is meant to be scored once); same author, synthetic data.")
 
 
 def check_score():
@@ -84,8 +156,9 @@ def check_score():
     ok = rep["recall"] == "24/24" and rep["clean_total"] == 0
     record(name, "PASS" if ok else "FAIL",
            f"recall {rep['recall']}; clean-file flags 3/4: {rep['clean_total']}; false positives in error files: "
-           f"{rep['false_positives_in_error_files']} (by test {rep['false_positives_by_test']}); "
-           f"see reports/phase2_qc_score.md. Database: {rep['database']}")
+           f"{rep['false_positives_in_error_files']} (by test {rep['false_positives_by_test']}); collateral density flags "
+           f"{rep['collateral_density_flags']} around {rep['culprit_cells_flagged']} culprit cells; expected primary test fired on the cell "
+           f"{rep['expected_primary_test_fired_on_the_cell']}; see reports/phase2_qc_score.md. Database: {rep['database']}")
 
 
 def check_db_behaviour():
@@ -95,6 +168,8 @@ def check_db_behaviour():
                   "services use a non-superuser role"):
             record(n, "SKIP", "no PostgreSQL available")
         return
+    okf, lastf = pytest_run("tests/integration/test_review_fixes_db.py")
+    record("review fixes in the database layer (staging after commit, grants, access rule)", "PASS" if okf else "FAIL", lastf)
     ok, last = pytest_run("tests/integration/test_ingest_db.py")
     record("re-ingest creates no duplicates", "PASS" if ok else "FAIL",
            "test_reingest_creates_no_duplicates (+ the rest of test_ingest_db.py): " + last)
@@ -187,8 +262,9 @@ def check_unit_suite():
 
 
 def main() -> int:
-    for fn in (check_parse_raw, check_unit_suite, check_named_tests, check_ten_tests, check_score, check_db_behaviour,
-               check_api, check_compose, check_phase1_regression, check_nothing_pushed):
+    for fn in (check_parse_raw, check_unit_suite, check_named_tests, check_ten_tests, check_review_fixes, check_score,
+               check_mutation, check_blind, check_lint, check_limits_documented, check_db_behaviour, check_api, check_compose,
+               check_phase1_regression, check_nothing_pushed):
         try:
             fn()
         except Exception as exc:  # noqa: BLE001

@@ -1,0 +1,4 @@
+# QC configuration frozen BEFORE the blind error set was built or scored
+225bc3afe0a0ff0beddd693b22c7b23c2d4994c3bc1f3ebf2ba5268a1c9130f3  components/03_qc_framework/scats_qc/qc_config.yaml
+a852efb63b9266f8f1a635146ebe33578d13644c5314b74a0e0ce925dedab04c  components/03_qc_framework/scats_qc/tests.py
+f9afaeca89767ca22bccfe8dc973c9139c8d6a48b7cedc06ea31a0e37cd11253  components/03_qc_framework/scats_qc/engine.py

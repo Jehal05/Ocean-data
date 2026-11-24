@@ -1,7 +1,8 @@
 # SYNTHETIC DATA generated for software testing. NOT real observations.
+# synthetic: true
 # cruise: SYN-CRUISE-2025-02
 # fill_value: -999
-# units: depth_m=m temp_C=degC sal_PSU=PSS-78 sound_vel_m_s=m/s
+# units: depth_m=m, temp_C=degC, sal_PSU=PSS-78, sound_vel_m_s=m/s
 cast_id,station,timestamp,lat,lon,depth_m,temp_C,sal_PSU,sound_vel_m_s
 SYN-C001,S01,2025-02-10T03:00:00Z,15.0,62.0,0.0,27.0286,35.9503,1539.935
 SYN-C001,S01,2025-02-10T03:00:00Z,15.0,62.0,2.0,26.9979,35.944,1539.893

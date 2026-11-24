@@ -7,7 +7,6 @@ from scats_common import MODEL
 from scats_common.flags import GOOD, MISSING, PROBABLY_BAD, BAD
 from scats_parsers.base import add_data_variable, aux_variables, initial_flags
 from scats_qc import ALL_TESTS, load_config, run_qc
-from scats_qc.engine import flag_name
 
 CFG = load_config()
 T0 = np.datetime64("2025-01-01T00:00:00", "ns")
@@ -28,13 +27,13 @@ def profile(temp=None, sal=None, pres=None, lat=(15.0,), lon=(65.0,), times=None
     return xr.Dataset(dv)
 
 
-def series(**cols):
+def series(times=None, **cols):
     n = len(next(iter(cols.values())))
     dv = {}
     for name, vals in cols.items():
         v = np.array(vals, dtype=float)
         add_data_variable(dv, name, ("record",), v, initial_flags(v), "x", MODEL.variables[name].units, "time")
-    t = np.array([T0 + np.timedelta64(i, "h") for i in range(n)], dtype="datetime64[ns]")
+    t = np.array(times if times is not None else [T0 + np.timedelta64(i, "h") for i in range(n)], dtype="datetime64[ns]")
     dv.update(aux_variables("record", time=t, lat=np.full(n, 15.0), lon=np.full(n, 65.0),
                             platform_id=["b"] * n, platform_group=["b"] * n))
     return xr.Dataset(dv)
@@ -195,7 +194,7 @@ def test_position_range_boundary_ok():
 def test_timestamp_valid_rejects_future_and_ancient():
     ds = profile(pres=[[5, 10]] * 3, lat=(15,) * 3, lon=(65,) * 3,
                  times=[np.datetime64("2090-01-01", "ns"), np.datetime64("1900-01-01", "ns"), T0])
-    r = run_qc(ds)
+    r = run_qc(ds, reference_time="2026-11-24T00:00:00Z")     # was clock-based; the reference time is now an explicit input
     assert sorted(f.index[0] for f in found(r, "timestamp_valid")) == [0, 1]
 
 
@@ -209,7 +208,10 @@ def test_timestamp_monotonic_duplicate_and_decrease_flag_later_record():
     t = [T0, T0 + np.timedelta64(1, "D"), T0 + np.timedelta64(1, "D"), T0 + np.timedelta64(3, "D"), T0 + np.timedelta64(2, "D")]
     ds = profile(pres=[[5, 10]] * 5, lat=(15,) * 5, lon=(65,) * 5, times=t)
     r = run_qc(ds)
-    assert {(f.index[0], f.detail["kind"]) for f in found(r, "timestamp_monotonic")} == {(2, "duplicate"), (4, "decreasing")}
+    # records 3 (3 d) and 4 (2 d) are a swapped pair: both fit between their outer neighbours, so the test cannot say
+    # which is wrong and flags both as ambiguous (old rule blamed record 4). Resolvable cases: tests/unit/test_review_fixes.py
+    assert {(f.index[0], f.detail["kind"]) for f in found(r, "timestamp_monotonic")} == {
+        (2, "duplicate"), (3, "out_of_order"), (4, "out_of_order")}
 
 
 def test_timestamp_monotonic_groups_are_independent():
