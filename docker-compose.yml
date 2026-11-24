@@ -74,6 +74,32 @@ services:
       retries: 6
       start_period: 5s
 
+  # Phase 2: parser + QC + ingest service. Connects as scats_ingest (db/init/004_ingest_role.sql), not the superuser.
+  parser-api:
+    build:
+      context: .                                       # repo root: the image needs libs/ and the QC package
+      dockerfile: components/02_parser_api/Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql://scats_ingest:${INGEST_DB_PASSWORD:-scats_ingest_dev_pw}@db:5432/${POSTGRES_DB:-scats}
+      STAGING_DIR: /srv/staging
+      INGEST_ALLOWED_DIRS: /srv/data
+      INGEST_API_KEY: ${INGEST_API_KEY:-}
+    volumes:
+      - ./data:/srv/data:ro                            # raw and test files, read-only
+      - stagingdata:/srv/staging
+    ports:
+      - "127.0.0.1:${PARSER_API_PORT:-8001}:8001"      # localhost only
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8001/parsers', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+
 volumes:
   pgdata:
   storagedata:
+  stagingdata:

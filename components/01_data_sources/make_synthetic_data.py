@@ -95,7 +95,7 @@ def make_argo(out: Path, rng):
 
     rows = []
     for f, (lat, lon) in enumerate(starts):
-        wmo = f"SYN{2900000 + f}"
+        wmo = f"SYN{29000 + f}"   # 8 characters: the file stores PLATFORM_NUMBER as S8
         for c in range(n_cycles):
             day = 1.5 * f + c * cycle_days + rng.uniform(0, 0.4)
             rows.append((wmo, c + 1, day, lat, lon))

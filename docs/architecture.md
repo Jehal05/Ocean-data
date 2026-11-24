@@ -98,15 +98,16 @@ Reading the diagram:
 | Standardised | `standardised` | Common-model datasets that passed QC and review | Written only after approval. Source of truth. |
 | Derived | `derived` | Products generated from the standardised zone | Reproducible from the standardised zone. |
 
-## 5. Open design decision for Phase 2/3: where flags live
+## 5. Where flags live (decision taken in Phase 2)
 
-QC flags are needed in two places, and Phase 1 does not yet say how they stay consistent:
+QC flags are kept in two places that must agree:
 
-* **Zarr** holds the full per-level flag arrays next to the data (needed to build products fast).
-* **PostgreSQL** (`qc_flag`) holds a queryable record of decisions, including who/what set each one.
+* **Staging dataset** (a NetCDF file per dataset until Phase 3 moves it to Zarr) holds the full flag array for every cell.
+* **PostgreSQL** (`qc_flag`) holds one row per cell whose flag is 2, 3, 4, 5, 8 or 9, naming the test that set it, plus `observation.overall_flag`. Cells that are good (1) get no row. Grids get one summary row per time slice and variable for flags 3 and 4, because a per-cell table would be huge and land-masked cells are structural.
+* `scats_ingest.verify_flag_consistency()` recomputes the expected rows from the staging file and reports every difference. It runs after every ingest. Details and reasoning: `docs/phase2_design.md` section 3.
 
-Storing a row per good value in PostgreSQL would not scale to large archives. Proposal: Zarr is the source of truth for the flag *values*; PostgreSQL stores every flag that is **not 1 (good)**, every human override, and a per-observation summary (`overall_flag`). A reconcile job compares the two. To be confirmed when Phase 2 writes its first flags.
+Still open for Phase 3: the Zarr layout, and what happens to a cell that stops being flagged after a QC config change (its old row stays as history and the consistency check reports it).
 
-## 6. What Phase 1 delivers from this design
+## 6. What Phase 1 delivered from this design
 
 Compose stack (database, object storage, API skeleton), the database schema with a limited API role, the three buckets, the data model specification, sample data and an error-injected test set. Components 2 to 8 exist as empty folders with a README stating what comes in which phase.

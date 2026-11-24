@@ -1,0 +1,35 @@
+# Moored buoy met-ocean time series, one row per record, "#" header lines.
+source_type: buoy_csv
+platform_type: moored_buoy
+dataset_type: timeseries
+data_mode_default: delayed_mode
+instrument: "Moored met-ocean buoy (generic)"
+
+detect:
+  columns: [time_utc, lat, lon, wspd_ms, hs_m]
+
+coordinates:
+  time_utc: time
+  lat: position
+  lon: position
+
+columns:
+  time: time_utc
+  latitude: lat
+  longitude: lon
+
+variables:
+  wspd_ms:        {name: wind_speed,              source_units: m s-1}
+  wdir_deg:       {name: wind_direction,          source_units: degree}
+  airtemp_C:      {name: air_temperature,         source_units: degC}
+  rh_pct:         {name: relative_humidity,       source_units: "%"}
+  slp_hPa:        {name: air_pressure,            source_units: hPa}
+  hs_m:           {name: wave_height,             source_units: m}
+  tp_s:           {name: wave_period,             source_units: s}
+  mwdir_deg:      {name: wave_direction,          source_units: degree}
+  sst_C:          {name: sea_surface_temperature, source_units: degC}
+  cur_speed_cm_s: {name: current_speed,           source_units: cm s-1}
+  cur_dir_deg:    {name: current_direction,       source_units: degree}
+
+fill_values: [-999]
+group_header_key: platform

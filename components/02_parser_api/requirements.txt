@@ -1,0 +1,10 @@
+fastapi>=0.115
+uvicorn[standard]>=0.30
+psycopg2-binary>=2.9
+numpy>=2.0
+pandas>=2.2
+xarray>=2024.6
+netCDF4>=1.7
+gsw>=3.6
+global-land-mask>=1.0
+pyyaml>=6.0

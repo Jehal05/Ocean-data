@@ -1,0 +1,30 @@
+# Ship CTD casts, long-form CSV (one row per cast and depth), "#" header lines.
+source_type: ship_ctd_csv
+platform_type: ship_ctd
+dataset_type: profile
+data_mode_default: delayed_mode
+instrument: "CTD (generic)"
+
+detect:
+  columns: [cast_id, timestamp, lat, lon, depth_m, temp_C, sal_PSU]
+
+coordinates:
+  timestamp: time
+  lat: position
+  lon: position
+
+columns:
+  cast: cast_id
+  time: timestamp
+  latitude: lat
+  longitude: lon
+  depth: depth_m
+
+variables:
+  temp_C:        {name: temperature,    source_units: degC}
+  sal_PSU:       {name: salinity,       source_units: "1"}
+  sound_vel_m_s: {name: sound_velocity, source_units: m s-1}
+
+# Fill values besides any "# fill_value:" header line
+fill_values: [-999]
+group_header_key: cruise

@@ -1,0 +1,51 @@
+# SCATS QC configuration. Every threshold carries a rationale and a source.
+# A threshold is never chosen by looking at the test data. If one changes after results were seen,
+# the reason is recorded in docs/phase2_design.md section 8 and `history` below.
+version: "0.1.0"
+history:
+  - {version: "0.1.0", note: "Initial values from documented reasoning, before any QC result was seen."}
+
+region:
+  name: "Arabian Sea and Bay of Bengal (northern Indian Ocean)"
+  note: "Ranges are for open water in this region. Marginal seas (Persian Gulf, Red Sea) are outside it and would be flagged 3 by design."
+
+regional_range:      # soft test -> flag 3
+  temperature:             {min: 1.0,  max: 36.0, rationale: "Deep water of the northern Indian Ocean is about 1.5-2 degC; the warmest open-ocean surface water is about 34 degC.", source: "Engineering judgement from World Ocean Atlas climatology ranges (not re-fetched)"}
+  salinity:                {min: 25.0, max: 41.0, rationale: "Arabian Sea surface salinity reaches about 37; Bay of Bengal river plumes can fall to the mid 20s.", source: "Engineering judgement (not re-fetched)"}
+  sea_surface_temperature: {min: 15.0, max: 36.0, rationale: "Northern Arabian Sea winter surface is about 22-24 degC; shallow coastal water can be cooler.", source: "Engineering judgement (not re-fetched)"}
+  sound_velocity:          {min: 1440.0, max: 1560.0, rationale: "Follows from the temperature and pressure ranges above (Mackenzie-type equations).", source: "Engineering judgement"}
+  wind_speed:              {min: 0.0, max: 40.0, rationale: "Cyclone-force winds exceed this but are rare; they should be reviewed, not trusted blindly.", source: "Engineering judgement"}
+  air_temperature:         {min: 10.0, max: 45.0, rationale: "Marine air temperature over the tropical northern Indian Ocean.", source: "Engineering judgement"}
+  relative_humidity:       {min: 20.0, max: 100.0, rationale: "Marine air rarely dries below 20 percent.", source: "Engineering judgement"}
+  air_pressure:            {min: 950.0, max: 1040.0, rationale: "Sea-level pressure in a cyclone can be lower; those cases need review.", source: "Engineering judgement"}
+  wave_height:             {min: 0.0, max: 12.0, rationale: "Monsoon and cyclone seas can exceed this but rarely.", source: "Engineering judgement"}
+  wave_period:             {min: 2.0, max: 20.0, rationale: "Wind sea to long swell.", source: "Engineering judgement"}
+  current_speed:           {min: 0.0, max: 3.0, rationale: "Strongest regional current (Somali Current) is about 3 m/s.", source: "Engineering judgement"}
+  bathymetry:              {min: 0.0, max: 7500.0, rationale: "Deepest point of the northern Indian Ocean basins is below this only in trenches outside the region.", source: "Engineering judgement"}
+
+spike:               # soft test -> flag 3.  value = |V2 - (V1+V3)/2| - |(V3-V1)/2|
+  profile:
+    pressure_split_dbar: 500.0
+    variables:
+      temperature: {shallow: 6.0, deep: 2.0, rationale: "Argo test 9: degC, shallow above 500 dbar and deep at or below.", source: "Argo Quality Control Manual, test 9 (recalled from memory, not re-fetched; verify)"}
+      salinity:    {shallow: 0.9, deep: 0.3, rationale: "Argo test 9: psu.", source: "Argo Quality Control Manual, test 9 (recalled from memory, not re-fetched; verify)"}
+  timeseries:        # hourly records
+    wind_speed:              {threshold: 10.0, rationale: "A change of 10 m/s inside one hour that reverses is not physical for a buoy anemometer.", source: "Engineering judgement"}
+    air_temperature:         {threshold: 4.0,  rationale: "Marine air temperature changes slowly; 4 degC out-and-back in an hour is a sensor fault.", source: "Engineering judgement"}
+    relative_humidity:       {threshold: 25.0, rationale: "Hourly humidity does not jump 25 percent and come back.", source: "Engineering judgement"}
+    air_pressure:            {threshold: 5.0,  rationale: "Pressure falls of about 3 hPa per hour are extreme even in cyclones.", source: "Engineering judgement"}
+    wave_height:             {threshold: 2.0,  rationale: "Significant wave height is a 20-30 minute average and changes smoothly.", source: "Engineering judgement"}
+    wave_period:             {threshold: 8.0,  rationale: "Peak period can switch between wind sea and swell but not out-and-back by 8 s every hour.", source: "Engineering judgement"}
+    sea_surface_temperature: {threshold: 1.5,  rationale: "Diurnal warming is about 0.5-1 degC over hours, not out-and-back inside one hour.", source: "Engineering judgement"}
+    current_speed:           {threshold: 1.0,  rationale: "Mooring current speed in m/s, hourly.", source: "Engineering judgement"}
+
+density_inversion:   # soft test -> flag 3
+  tolerance_kg_m3: 0.03
+  rationale: "Argo test 14 uses 0.03 kg m-3 as the allowed inversion between adjacent levels."
+  source: "Argo Quality Control Manual, test 14 (recalled from memory, not re-fetched; verify). Tolerance is open question 6 for NPOL."
+
+timestamp_valid:     # hard test -> flag 4
+  earliest: "1950-01-01"
+  future_days: 1
+  rationale: "Start of the instrumented ocean record is well after 1950; a timestamp later than tomorrow cannot be an observation."
+  source: "Engineering judgement"

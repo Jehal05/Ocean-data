@@ -1,0 +1,85 @@
+# Machine-readable copy of docs/data_model.md (common data model v0.1).
+# tests/unit/test_common.py FAILS if the variable table here disagrees with the document.
+# Draft: NPOL defines the real model. Ranges are generic hard (global) limits.
+
+data_model_version: "0.1"
+conventions: "CF-1.10, SCATS-0.1"
+
+variables:
+  - {name: temperature,             standard_name: sea_water_temperature,                                       units: degC,    valid_min: -2.5, valid_max: 40,    long_name: "Sea water temperature (in situ)"}
+  - {name: salinity,                standard_name: sea_water_practical_salinity,                                units: "1",     valid_min: 2,    valid_max: 42,    long_name: "Sea water practical salinity (PSS-78)"}
+  - {name: sound_velocity,          standard_name: speed_of_sound_in_sea_water,                                 units: m s-1,  valid_min: 1400, valid_max: 1700,  long_name: "Speed of sound in sea water"}
+  - {name: density,                 standard_name: sea_water_sigma_theta,                                       units: kg m-3,  valid_min: 0,    valid_max: 40,    long_name: "Sea water potential density anomaly (sigma-theta)"}
+  - {name: current_speed,           standard_name: sea_water_speed,                                             units: m s-1,  valid_min: 0,    valid_max: 5,     long_name: "Sea water current speed"}
+  - {name: current_direction,       standard_name: direction_of_sea_water_velocity,                             units: degree,  valid_min: 0,    valid_max: 360,   long_name: "Direction the water flows TOWARD, clockwise from north"}
+  - {name: wind_speed,              standard_name: wind_speed,                                                  units: m s-1,  valid_min: 0,    valid_max: 75,    long_name: "Wind speed"}
+  - {name: wind_direction,          standard_name: wind_from_direction,                                         units: degree,  valid_min: 0,    valid_max: 360,   long_name: "Direction the wind blows FROM"}
+  - {name: relative_humidity,       standard_name: relative_humidity,                                           units: "%",     valid_min: 0,    valid_max: 100,   long_name: "Relative humidity"}
+  - {name: air_temperature,         standard_name: air_temperature,                                             units: degC,    valid_min: -50,  valid_max: 60,    long_name: "Air temperature"}
+  - {name: air_pressure,            standard_name: air_pressure_at_mean_sea_level,                              units: hPa,     valid_min: 870,  valid_max: 1085,  long_name: "Air pressure at mean sea level"}
+  - {name: wave_height,             standard_name: sea_surface_wave_significant_height,                         units: m,       valid_min: 0,    valid_max: 30,    long_name: "Significant wave height (Hs)"}
+  - {name: wave_direction,          standard_name: sea_surface_wave_from_direction,                             units: degree,  valid_min: 0,    valid_max: 360,   long_name: "Direction waves come FROM"}
+  - {name: wave_period,             standard_name: sea_surface_wave_period_at_variance_spectral_density_maximum, units: s,       valid_min: 0,    valid_max: 30,    long_name: "Peak wave period (Tp)"}
+  - {name: bathymetry,              standard_name: sea_floor_depth_below_geoid,                                 units: m,       valid_min: 0,    valid_max: 11000, long_name: "Sea floor depth below geoid, positive down"}
+  - {name: sea_level_anomaly,       standard_name: sea_surface_height_above_sea_level,                          units: m,       valid_min: -3,   valid_max: 3,     long_name: "Sea level anomaly"}
+  - {name: sea_surface_temperature, standard_name: sea_surface_temperature,                                     units: degC,    valid_min: -2.5, valid_max: 40,    long_name: "Sea surface temperature"}
+
+# Coordinates and auxiliary (non-flagged-by-range) variables
+coordinates:
+  time:      {standard_name: time,      units: "seconds since 1970-01-01T00:00:00Z"}
+  latitude:  {standard_name: latitude,  units: degrees_north, valid_min: -90,  valid_max: 90}
+  longitude: {standard_name: longitude, units: degrees_east,  valid_min: -180, valid_max: 180}
+  depth:     {standard_name: depth,     units: m,    positive: down}
+  pressure:  {standard_name: sea_water_pressure, units: dbar}
+
+flag_scheme:
+  0: no_qc
+  1: good
+  2: probably_good
+  3: probably_bad
+  4: bad
+  5: value_changed
+  8: estimated
+  9: missing
+
+vocabularies:
+  platform_type: [argo_float, ship_ctd, moored_buoy, satellite, numerical_model, bathymetry_grid]
+  dataset_type: [profile, timeseries, grid, bathymetry]
+  data_mode: [real_time, delayed_mode, reanalysis, synthetic]
+  processing_level: [raw, standardised, derived]
+
+required_dataset_attrs:
+  - title
+  - summary
+  - Conventions
+  - data_model_version
+  - source
+  - institution
+  - platform_type
+  - platform_id
+  - data_mode
+  - is_synthetic
+  - license
+  - time_coverage_start
+  - time_coverage_end
+  - geospatial_lat_min
+  - geospatial_lat_max
+  - geospatial_lon_min
+  - geospatial_lon_max
+  - processing_level
+  - original_file_name
+  - original_checksum_sha256
+  - date_created
+  - history
+  - dataset_type
+
+required_variable_attrs:
+  - standard_name
+  - long_name
+  - units
+  - source_name
+  - source_units
+  - valid_min
+  - valid_max
+  - ancillary_variables
+  - coordinates

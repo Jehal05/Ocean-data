@@ -1,0 +1,20 @@
+# Gridded bathymetry (GEBCO-style `elevation`, metres, NEGATIVE below sea level).
+source_type: bathymetry_grid
+platform_type: bathymetry_grid
+dataset_type: bathymetry
+data_mode_default: delayed_mode
+instrument: "Gridded bathymetry"
+
+detect:
+  variable: elevation
+
+coordinates:
+  lat: position
+  lon: position
+
+dims: {latitude: lat, longitude: lon}
+
+# elevation (negative down) -> bathymetry (sea floor depth, positive down).
+# Land cells (depth < 0) have no sea floor depth: NaN with flag 9, counted in the dataset attributes.
+variables:
+  elevation: {name: bathymetry, source_units: m, transform: elevation_to_depth}

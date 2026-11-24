@@ -1,0 +1,19 @@
+# Gridded sea surface temperature (GHRSST-style, packed int16 kelvin).
+source_type: sst_grid
+platform_type: satellite
+dataset_type: grid
+data_mode_default: delayed_mode
+instrument: "Gridded SST analysis"
+
+detect:
+  variable: analysed_sst
+
+coordinates:
+  time: time
+  lat: position
+  lon: position
+
+dims: {time: time, latitude: lat, longitude: lon}
+
+variables:
+  analysed_sst: {name: sea_surface_temperature, source_units: kelvin}

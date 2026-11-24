@@ -1,0 +1,27 @@
+# Argo-style profile NetCDF (N_PROF x N_LEVELS). Names, fill values and flag mapping live here, not in code.
+source_type: argo_netcdf
+platform_type: argo_float
+dataset_type: profile
+data_mode_default: delayed_mode
+instrument: "Argo-style profiling float (CTD)"
+
+detect:
+  variables: [JULD, LATITUDE, LONGITUDE, PRES, TEMP, PSAL, PLATFORM_NUMBER]
+
+# Source name -> pseudo variable used by QC flags ("time", "position")
+coordinates:
+  JULD: time
+  LATITUDE: position
+  LONGITUDE: position
+
+# Source name -> common name. `qc` is the provider's flag variable.
+# source_units is a FALLBACK; the file's own `units` attribute wins when present.
+variables:
+  TEMP: {name: temperature, source_units: degree_Celsius, qc: TEMP_QC}
+  PSAL: {name: salinity,    source_units: psu,            qc: PSAL_QC}
+
+pressure: {source: PRES, source_units: decibar}
+platform: PLATFORM_NUMBER
+
+# Provider flag character -> SCATS flag (Argo scheme equals the SCATS scheme). Anything else -> 0.
+provider_flags: {"0": 0, "1": 1, "2": 2, "3": 3, "4": 4, "5": 5, "8": 8, "9": 9}
