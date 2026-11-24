@@ -1,0 +1,13 @@
+# For the data scripts and the acceptance check (not needed to run the Docker stack)
+numpy
+pandas
+scipy
+xarray
+netCDF4
+gsw
+global-land-mask
+boto3
+psycopg2-binary
+requests
+# optional, only for ERA5 download:
+# cdsapi

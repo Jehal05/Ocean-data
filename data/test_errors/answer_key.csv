@@ -1,0 +1,25 @@
+error_id,file,record,variable,level_or_row,error_type,original_value,injected_value,expected_primary_test,notes
+E01,argo_profiles_errors.nc,3,TEMP,40,spike,9.851125,21.851124,spike,+12 degC jump at one level
+E02,argo_profiles_errors.nc,7,PSAL,55,spike,35.20788,38.20788,spike,+3 psu jump at one level
+E03,argo_profiles_errors.nc,5,TEMP,10,out_of_range,23.833563,-8.0,global_range,below freezing point of sea water
+E04,argo_profiles_errors.nc,9,PSAL,20,out_of_range,35.57014,52.0,global_range,salinity above any open-ocean value
+E05,argo_profiles_errors.nc,11,LATITUDE/LONGITUDE,-,position_on_land,"10.428,67.636","23.300,72.000",position_on_land,"inland Gujarat, India"
+E06,argo_profiles_errors.nc,13,LATITUDE,-,position_invalid,10.360384705177484,95.0,position_range,latitude beyond +/-90
+E07,argo_profiles_errors.nc,16,JULD,-,timestamp_duplicate,27443.61420665997,27435.78228827824,timestamp_monotonic,same time as profile 15 of the same float
+E08,argo_profiles_errors.nc,18,JULD,-,timestamp_non_monotonic,27459.538376822802,27432.78228827824,timestamp_monotonic,earlier than profiles 15-17 of the same float
+E09,argo_profiles_errors.nc,1,TEMP,30,missing,10.538573,99999.0,missing_value,Argo fill value 99999
+E10,argo_profiles_errors.nc,2,PSAL,50,missing,35.242252,99999.0,missing_value,Argo fill value 99999
+E11,argo_profiles_errors.nc,19,TEMP,60,density_inversion,9.075294,15.146301,density_inversion,level 60 made 6 degC warmer than level 59; may also trip spike
+E12,ctd_casts_errors.csv,SYN-C001,temp_C,depth 60.0,spike,23.7623,33.762299999999996,spike,csv data row 31
+E13,ctd_casts_errors.csv,SYN-C002,sal_PSU,depth 100.0,missing,35.7146,-999,missing_value,"fill value -999, csv data row 302"
+E14,ctd_casts_errors.csv,SYN-C003,temp_C,depth 152.0,density_inversion,12.4598,17.6003,density_inversion,"152 m made 5 degC warmer than 150 m, csv data row 579"
+E15,ctd_casts_errors.csv,SYN-C003,sal_PSU,depth 300.0,out_of_range,35.4066,75.0,global_range,csv data row 653
+E16,buoy_met_wave_errors.csv,41,wspd_ms,41,spike,4.74,39.74,spike,35 m/s jump for one hour
+E17,buoy_met_wave_errors.csv,91,hs_m,91,spike,2.11,9.5,spike,wave height jumps to 9.5 m for one hour
+E18,buoy_met_wave_errors.csv,61,rh_pct,61,out_of_range,72.2,140.0,global_range,humidity above 100 %
+E19,buoy_met_wave_errors.csv,62,airtemp_C,62,out_of_range,25.79,75.0,global_range,air temperature 75 degC
+E20,buoy_met_wave_errors.csv,21,lat/lon,21,position_on_land,"15.0,68.0","19.0,74.0",position_on_land,"inland Maharashtra, India; a moored buoy cannot be there"
+E21,buoy_met_wave_errors.csv,101,time_utc,101,timestamp_duplicate,2025-01-05T04:00:00Z,2025-01-05T03:00:00Z,timestamp_monotonic,same time as the previous row
+E22,buoy_met_wave_errors.csv,131,time_utc,131,timestamp_non_monotonic,2025-01-06T10:00:00Z,2025-01-06T03:00:00Z,timestamp_monotonic,two hours before an earlier row
+E23,buoy_met_wave_errors.csv,71,airtemp_C,71,missing,26.97,(empty),missing_value,empty cell
+E24,buoy_met_wave_errors.csv,72,wdir_deg,72,missing,17.0,-999,missing_value,fill value -999
