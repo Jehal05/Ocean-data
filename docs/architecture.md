@@ -68,7 +68,7 @@ Reading the diagram:
 | Storage format | Zarr | Cloud-native chunked arrays named in the scope of work. |
 | Reference files | Kerchunk, VirtualiZarr | Read existing NetCDF/HDF files as Zarr without copying them. Named in the scope. |
 | Seawater physics | gsw (TEOS-10) | Accepted standard for density, sound speed and heat content. |
-| Object storage | MinIO (S3 API) | Runs on a laptop or on-premise, and the same code works on any S3 cloud. |
+| Object storage | SeaweedFS with S3 gateway | Open source, runs on a laptop or on-premise. MinIO was dropped because its free community images are no longer published. All code uses only the S3 API, so the store can be swapped by editing one compose service. |
 | Catalogue and audit | PostgreSQL 16 + PostGIS | Spatial queries on observations, relational integrity, trigger-enforced append-only audit log. |
 | Packaging | Docker Compose | One command to start, and runs on laptop, cloud or on-premise as the scope requires. |
 | Standards | CF Conventions, GOOS recommendations, OGC | Required by the scope of work (see `data_model.md`). |
@@ -98,6 +98,15 @@ Reading the diagram:
 | Standardised | `standardised` | Common-model datasets that passed QC and review | Written only after approval. Source of truth. |
 | Derived | `derived` | Products generated from the standardised zone | Reproducible from the standardised zone. |
 
-## 5. What Phase 1 delivers from this design
+## 5. Open design decision for Phase 2/3: where flags live
 
-Compose stack (database, object storage, API skeleton), the database schema, the three buckets, the data model specification, sample data and an error-injected test set. Components 2 to 8 exist as empty folders with a README stating what comes in which phase.
+QC flags are needed in two places, and Phase 1 does not yet say how they stay consistent:
+
+* **Zarr** holds the full per-level flag arrays next to the data (needed to build products fast).
+* **PostgreSQL** (`qc_flag`) holds a queryable record of decisions, including who/what set each one.
+
+Storing a row per good value in PostgreSQL would not scale to large archives. Proposal: Zarr is the source of truth for the flag *values*; PostgreSQL stores every flag that is **not 1 (good)**, every human override, and a per-observation summary (`overall_flag`). A reconcile job compares the two. To be confirmed when Phase 2 writes its first flags.
+
+## 6. What Phase 1 delivers from this design
+
+Compose stack (database, object storage, API skeleton), the database schema with a limited API role, the three buckets, the data model specification, sample data and an error-injected test set. Components 2 to 8 exist as empty folders with a README stating what comes in which phase.

@@ -19,7 +19,7 @@ Formats deliberately differ (names, units, fill values, packing, time encoding) 
 | Script | Purpose | Tested here? |
 |---|---|---|
 | `make_synthetic_data.py` | Offline synthetic data, fixed random seed, labelled SYNTHETIC | Yes |
-| `inject_errors.py` | Corrupted subsets plus `answer_key.csv`, with 25 self-checks | Yes |
+| `inject_errors.py` | Corrupted subsets plus `answer_key.csv`, with 49 self-checks | Yes |
 | `fetch_public_data.py` | Real public data | **No.** Written without access to those servers. Dataset IDs may need adjusting. |
 
 ## The error-injected test set (`data/test_errors`)
@@ -36,6 +36,20 @@ Formats deliberately differ (names, units, fill values, packing, time encoding) 
 | timestamp_duplicate | 2 | `timestamp_monotonic` |
 | timestamp_non_monotonic | 2 | `timestamp_monotonic` |
 | density_inversion | 2 | `density_inversion` |
+
+### Answer key columns
+
+All indices are **0-based**.
+
+| Column | Meaning |
+|---|---|
+| `record_kind` | `profile_index` for the NetCDF file, `csv_data_row` for CSV files |
+| `record_index` | Profile number (NetCDF), or data row counting from 0 after the `#` header lines and the column header (CSV) |
+| `level_index` | Level within the profile or cast; blank when not applicable (positions, timestamps, buoy rows) |
+| `cast_id`, `depth_m` | Ship CTD only |
+| `variable`, `error_type`, `original_value`, `injected_value`, `expected_primary_test`, `notes` | What was changed, and which test should catch it |
+
+`inject_errors.py` re-reads the files it writes and proves that every key row points at the cell that was really corrupted (49 self-checks).
 
 Everything else in those files is untouched clean data. A good QC engine in Phase 2 should catch every row of the key and should not flag clean records (profile 0 and the first CTD cast are clean controls).
 

@@ -144,6 +144,10 @@ CREATE TABLE observation (
 CREATE INDEX observation_dataset_ix ON observation (dataset_id);
 CREATE INDEX observation_time_ix    ON observation (obs_time);
 CREATE INDEX observation_geom_gix   ON observation USING GIST (geom);
+-- Re-ingesting the same file must not create duplicate observations.
+CREATE UNIQUE INDEX observation_source_uq
+    ON observation (dataset_id, source_file, source_record)
+    WHERE source_file IS NOT NULL AND source_record IS NOT NULL;
 
 -- -------------------------------------------------------------- QC flags --
 -- Flags are stored per observation, per variable and (for profiles) per level.
@@ -205,6 +209,22 @@ CREATE TABLE audit_log (
 CREATE INDEX audit_log_entity_ix ON audit_log (entity_type, entity_id);
 CREATE INDEX audit_log_time_ix   ON audit_log (occurred_at);
 
+-- One definition of the row hash, used by the insert trigger and by the
+-- verifiers. The timestamp is rendered in UTC with a fixed format so the hash
+-- does NOT depend on the session TimeZone of whoever inserts or verifies.
+CREATE FUNCTION audit_row_hash(
+    p_prev TEXT, p_id BIGINT, p_ts TIMESTAMPTZ, p_user TEXT, p_action TEXT,
+    p_etype TEXT, p_eid TEXT, p_before JSONB, p_after JSONB, p_comment TEXT
+) RETURNS TEXT AS $$
+    SELECT encode(digest(
+        p_prev || '|' || p_id::text || '|' ||
+        to_char(p_ts AT TIME ZONE 'UTC', 'YYYY-MM-DD"T"HH24:MI:SS.US') || '|' ||
+        COALESCE(p_user,'') || '|' || p_action || '|' || p_etype || '|' ||
+        COALESCE(p_eid,'') || '|' || COALESCE(p_before::text,'') || '|' ||
+        COALESCE(p_after::text,'') || '|' || COALESCE(p_comment,''),
+        'sha256'), 'hex')
+$$ LANGUAGE sql IMMUTABLE;
+
 CREATE FUNCTION audit_log_chain() RETURNS trigger AS $$
 DECLARE
     last_hash TEXT;
@@ -213,12 +233,9 @@ BEGIN
     PERFORM pg_advisory_xact_lock(4242);
     SELECT row_hash INTO last_hash FROM audit_log ORDER BY audit_id DESC LIMIT 1;
     NEW.prev_hash := COALESCE(last_hash, 'GENESIS');
-    NEW.row_hash  := encode(digest(
-        NEW.prev_hash || '|' || NEW.audit_id::text || '|' ||
-        NEW.occurred_at::text || '|' || COALESCE(NEW.username,'') || '|' ||
-        NEW.action || '|' || NEW.entity_type || '|' || COALESCE(NEW.entity_id,'') || '|' ||
-        COALESCE(NEW.before_state::text,'') || '|' || COALESCE(NEW.after_state::text,'') || '|' ||
-        COALESCE(NEW.comment,''), 'sha256'), 'hex');
+    NEW.row_hash  := audit_row_hash(NEW.prev_hash, NEW.audit_id, NEW.occurred_at, NEW.username,
+                                    NEW.action, NEW.entity_type, NEW.entity_id,
+                                    NEW.before_state, NEW.after_state, NEW.comment);
     RETURN NEW;
 END $$ LANGUAGE plpgsql;
 
@@ -239,34 +256,42 @@ CREATE TRIGGER audit_log_no_truncate
 BEFORE TRUNCATE ON audit_log
 FOR EACH STATEMENT EXECUTE FUNCTION audit_log_block_change();
 
--- Returns the first broken audit_id, or NULL when the chain is intact.
-CREATE FUNCTION audit_verify_chain() RETURNS BIGINT AS $$
+-- Verifies the newest p_window rows (cheap, used by /health).
+-- Returns the first broken audit_id, or NULL when intact. The oldest row in the
+-- window is anchored to the row just before it, so a break at the boundary is
+-- still caught.
+CREATE FUNCTION audit_verify_recent(p_window INTEGER DEFAULT 1000) RETURNS BIGINT AS $$
 DECLARE
     r RECORD;
-    expected_prev TEXT := 'GENESIS';
-    expected_hash TEXT;
+    expected_prev TEXT;
+    prior_hash TEXT;
+    first_row BOOLEAN := TRUE;
 BEGIN
-    FOR r IN SELECT * FROM audit_log ORDER BY audit_id LOOP
-        expected_hash := encode(digest(
-            expected_prev || '|' || r.audit_id::text || '|' ||
-            r.occurred_at::text || '|' || COALESCE(r.username,'') || '|' ||
-            r.action || '|' || r.entity_type || '|' || COALESCE(r.entity_id,'') || '|' ||
-            COALESCE(r.before_state::text,'') || '|' || COALESCE(r.after_state::text,'') || '|' ||
-            COALESCE(r.comment,''), 'sha256'), 'hex');
-        IF r.prev_hash IS DISTINCT FROM expected_prev OR r.row_hash IS DISTINCT FROM expected_hash THEN
+    FOR r IN SELECT * FROM (SELECT * FROM audit_log ORDER BY audit_id DESC LIMIT p_window) w
+             ORDER BY audit_id LOOP
+        IF first_row THEN
+            SELECT row_hash INTO prior_hash FROM audit_log
+             WHERE audit_id < r.audit_id ORDER BY audit_id DESC LIMIT 1;
+            expected_prev := COALESCE(prior_hash, 'GENESIS');
+            first_row := FALSE;
+        END IF;
+        IF r.prev_hash IS DISTINCT FROM expected_prev
+           OR r.row_hash IS DISTINCT FROM audit_row_hash(
+                expected_prev, r.audit_id, r.occurred_at, r.username, r.action, r.entity_type,
+                r.entity_id, r.before_state, r.after_state, r.comment) THEN
             RETURN r.audit_id;
         END IF;
         expected_prev := r.row_hash;
     END LOOP;
     RETURN NULL;
-END $$ LANGUAGE plpgsql;
+END $$ LANGUAGE plpgsql STABLE;
 
--- ------------------------------------------------------------ seed users --
--- POC accounts only. Change before any real use.
-INSERT INTO app_user (username, display_name, password_hash, role_name) VALUES
-  ('admin',    'POC Admin',    crypt('admin123',    gen_salt('bf')), 'admin'),
-  ('reviewer', 'POC Reviewer', crypt('reviewer123', gen_salt('bf')), 'reviewer'),
-  ('viewer',   'POC Viewer',   crypt('viewer123',   gen_salt('bf')), 'viewer');
+-- Verifies the whole log. Returns the first broken audit_id, or NULL.
+CREATE FUNCTION audit_verify_chain() RETURNS BIGINT AS $$
+    SELECT audit_verify_recent(2147483647)
+$$ LANGUAGE sql STABLE;
+
+-- Development seed users live in 003_dev_seed_users.sql (delete that file for real use).
 
 INSERT INTO audit_log (username, action, entity_type, entity_id, comment)
 VALUES ('system', 'schema.init', 'database', 'scats', 'Phase 1 schema created');

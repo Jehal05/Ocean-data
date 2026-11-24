@@ -6,8 +6,8 @@ check FAILs, 0 otherwise (read the SKIPs).
 
 Environment (defaults match docker-compose.yml):
   API_URL        http://localhost:8000
-  DATABASE_URL   postgresql://scats:scats_dev_pw@localhost:5432/scats
-  S3_ENDPOINT    http://localhost:9000   S3_ACCESS_KEY / S3_SECRET_KEY
+  DATABASE_URL   postgresql://scats_app:scats_app_dev_pw@localhost:5432/scats
+  S3_ENDPOINT    http://localhost:8333   S3_ACCESS_KEY / S3_SECRET_KEY
 """
 from __future__ import annotations
 
@@ -22,10 +22,10 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
 API_URL = os.getenv("API_URL", "http://localhost:8000")
-DB_URL = os.getenv("DATABASE_URL", "postgresql://scats:scats_dev_pw@localhost:5432/scats")
-S3_ENDPOINT = os.getenv("S3_ENDPOINT", "http://localhost:9000")
-S3_KEY = os.getenv("S3_ACCESS_KEY", os.getenv("MINIO_ROOT_USER", "scatsminio"))
-S3_SECRET = os.getenv("S3_SECRET_KEY", os.getenv("MINIO_ROOT_PASSWORD", "scatsminio_dev_pw"))
+DB_URL = os.getenv("DATABASE_URL", "postgresql://scats_app:scats_app_dev_pw@localhost:5432/scats")
+S3_ENDPOINT = os.getenv("S3_ENDPOINT", "http://localhost:8333")
+S3_KEY = os.getenv("S3_ACCESS_KEY", "scatsdev")
+S3_SECRET = os.getenv("S3_SECRET_KEY", "scatsdev_secret_pw")
 
 results: list[tuple[str, str, str]] = []
 
@@ -53,7 +53,7 @@ def check_compose():
     if cfg.returncode != 0:
         return record(name, "FAIL", "compose file invalid: " + cfg.stderr.strip()[:200])
     services = set(cfg.stdout.split())
-    expected = {"db", "minio", "minio-init", "api"}
+    expected = {"db", "storage", "storage-init", "api"}
     if not expected <= services:
         return record(name, "FAIL", f"missing services {expected - services}")
     ps = subprocess.run(["docker", "compose", "-f", str(compose), "ps", "--format", "json"],
@@ -63,9 +63,9 @@ def check_compose():
                                     "stack is not running or Docker daemon unreachable, so 'up' not verified")
     rows = [json.loads(line) for line in ps.stdout.splitlines() if line.strip()]
     running = {r["Service"] for r in rows if r.get("State") == "running"}
-    init_ok = any(r["Service"] == "minio-init" and r.get("State") == "exited" and r.get("ExitCode") == 0 for r in rows)
-    ok = {"db", "minio", "api"} <= running and init_ok
-    record(name, "PASS" if ok else "FAIL", f"running={sorted(running)} minio-init exited 0: {init_ok}")
+    init_ok = any(r["Service"] == "storage-init" and r.get("State") == "exited" and r.get("ExitCode") == 0 for r in rows)
+    ok = {"db", "storage", "api"} <= running and init_ok
+    record(name, "PASS" if ok else "FAIL", f"running={sorted(running)} storage-init exited 0: {init_ok}")
 
 
 # 2. health endpoint -----------------------------------------------------------
@@ -92,7 +92,7 @@ def check_schema():
         cur = conn.cursor()
         need = {"storage_zone", "qc_flag_scheme", "qc_test", "app_role", "app_user", "dataset", "dataset_variable",
                 "observation", "qc_flag", "review", "audit_log"}
-        cur.execute("SELECT table_name FROM information_schema.tables WHERE table_schema='public'")
+        cur.execute("SELECT tablename FROM pg_tables WHERE schemaname='public'")
         have = {r[0] for r in cur.fetchall()}
         missing = need - have
         cur.execute("SELECT count(*) FROM audit_log")
@@ -108,12 +108,20 @@ def check_schema():
             conn.rollback()
         cur.execute("SELECT audit_verify_chain()")
         chain = cur.fetchone()[0]
+        cur.execute("SELECT audit_verify_recent(10)")
+        recent = cur.fetchone()[0]
         cur.execute("SELECT count(*) FROM qc_flag_scheme")
         n_flags = cur.fetchone()[0]
-        ok = not missing and all(blocked.values()) and chain is None and n_before >= 1 and n_flags == 8
+        cur.execute("SELECT count(*) FROM pg_indexes WHERE indexname = 'observation_source_uq'")
+        has_unique = cur.fetchone()[0] == 1
+        cur.execute("SELECT rolsuper FROM pg_roles WHERE rolname = current_user")
+        is_super = cur.fetchone()[0]
+        ok = (not missing and all(blocked.values()) and chain is None and recent is None and n_before >= 1
+              and n_flags == 8 and has_unique and not is_super)
         record(name, "PASS" if ok else "FAIL",
                f"tables missing={sorted(missing) or 'none'}; audit rows={n_before}; "
-               f"UPDATE/DELETE/TRUNCATE blocked={blocked}; chain intact={chain is None}; flag values={n_flags}")
+               f"UPDATE/DELETE/TRUNCATE blocked={blocked}; full chain intact={chain is None}; recent intact={recent is None}; "
+               f"flag values={n_flags}; observation unique index={has_unique}; connected as superuser={is_super}")
     finally:
         conn.close()
 
@@ -184,6 +192,14 @@ def check_error_set():
         return record(name, "FAIL", "answer_key.csv missing")
     import csv
     rows = list(csv.DictReader(open(key)))
+    cols = {"error_id", "file", "record_kind", "record_index", "level_index", "cast_id", "depth_m", "variable",
+            "error_type", "original_value", "injected_value", "expected_primary_test", "notes"}
+    if not cols <= set(rows[0]):
+        return record(name, "FAIL", f"answer key columns missing: {sorted(cols - set(rows[0]))}")
+    bad_idx = [r["error_id"] for r in rows if not r["record_index"].isdigit()
+               or r["record_kind"] not in ("profile_index", "csv_data_row")]
+    if bad_idx:
+        return record(name, "FAIL", f"bad record_index/record_kind in rows {bad_idx}")
     types = {r["error_type"] for r in rows}
     need = {"spike", "out_of_range", "position_on_land", "timestamp_duplicate", "timestamp_non_monotonic", "missing",
             "density_inversion"}

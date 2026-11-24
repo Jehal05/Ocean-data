@@ -11,6 +11,14 @@ Files written (all three are subsets of the clean raw files):
   buoy_met_wave_errors.csv  first 7 days of buoy records    (CSV, time series)
   answer_key.csv            one row per injected error
 
+Answer key columns (ALL indices are 0-based):
+  record_kind    profile_index  -> record_index is the profile number in the .nc file
+                 csv_data_row   -> record_index is the data row in the CSV, counting
+                                   from 0 after the "#" header lines and the column header
+  record_index   see above
+  level_index    level number within the profile or cast (blank when not applicable)
+  cast_id, depth_m   ship CTD only
+
 Every injection is checked after writing: the script re-reads the output and
 proves the error is really there (e.g. the "land" position is on land, the
 "inversion" is a real density inversion). It exits non-zero if any check fails.
@@ -33,10 +41,15 @@ KEY: list[dict] = []
 CHECKS: list[tuple[str, bool]] = []
 
 
-def log(file, record, variable, level, etype, original, injected, test, notes=""):
-    KEY.append({"error_id": f"E{len(KEY) + 1:02d}", "file": file, "record": record,
-                "variable": variable, "level_or_row": level, "error_type": etype,
-                "original_value": original, "injected_value": injected,
+def log(file, record_index, variable, level_index, etype, original, injected, test, notes="",
+        cast_id="", depth_m=""):
+    """All indices are 0-based. See the module docstring for the column meanings."""
+    KEY.append({"error_id": f"E{len(KEY) + 1:02d}", "file": file,
+                "record_kind": "profile_index" if file.endswith(".nc") else "csv_data_row",
+                "record_index": int(record_index),
+                "level_index": "" if level_index in ("-", "", None) else int(level_index),
+                "cast_id": cast_id, "depth_m": depth_m, "variable": variable,
+                "error_type": etype, "original_value": original, "injected_value": injected,
                 "expected_primary_test": test, "notes": notes})
 
 
@@ -138,22 +151,22 @@ def ctd_subset(raw: Path, out: Path):
         return df.index[(df.cast_id == cast) & (df.depth_m == depth)][0]
 
     i = row("SYN-C001", 60.0)
-    log(f, "SYN-C001", "temp_C", f"depth {60.0}", "spike", df.at[i, "temp_C"], df.at[i, "temp_C"] + 10.0,
-        "spike", f"csv data row {i + 1}")
+    log(f, i, "temp_C", 30, "spike", df.at[i, "temp_C"], round(df.at[i, "temp_C"] + 10.0, 4),
+        "spike", "+10 degC at 60 m", cast_id="SYN-C001", depth_m=60.0)
     df.at[i, "temp_C"] = round(df.at[i, "temp_C"] + 10.0, 4)
     i2 = row("SYN-C002", 100.0)
-    log(f, "SYN-C002", "sal_PSU", "depth 100.0", "missing", df.at[i2, "sal_PSU"], FILL_CSV, "missing_value",
-        f"fill value -999, csv data row {i2 + 1}")
+    log(f, i2, "sal_PSU", 50, "missing", df.at[i2, "sal_PSU"], FILL_CSV, "missing_value",
+        "fill value -999", cast_id="SYN-C002", depth_m=100.0)
     df.at[i2, "sal_PSU"] = FILL_CSV
     i3 = row("SYN-C003", 150.0)
     below = row("SYN-C003", 152.0)
     new_t = round(df.at[i3, "temp_C"] + 5.0, 4)
-    log(f, "SYN-C003", "temp_C", "depth 152.0", "density_inversion", df.at[below, "temp_C"], new_t,
-        "density_inversion", f"152 m made 5 degC warmer than 150 m, csv data row {below + 1}")
+    log(f, below, "temp_C", 76, "density_inversion", df.at[below, "temp_C"], new_t,
+        "density_inversion", "152 m made 5 degC warmer than 150 m", cast_id="SYN-C003", depth_m=152.0)
     df.at[below, "temp_C"] = new_t
     i4 = row("SYN-C003", 300.0)
-    log(f, "SYN-C003", "sal_PSU", "depth 300.0", "out_of_range", df.at[i4, "sal_PSU"], 75.0, "global_range",
-        f"csv data row {i4 + 1}")
+    log(f, i4, "sal_PSU", 150, "out_of_range", df.at[i4, "sal_PSU"], 75.0, "global_range",
+        "salinity 75", cast_id="SYN-C003", depth_m=300.0)
     df.at[i4, "sal_PSU"] = 75.0
 
     path = out / name
@@ -182,30 +195,29 @@ def buoy_subset(raw: Path, out: Path):
     header = [ln for ln in open(src) if ln.startswith("#")]
     df = pd.read_csv(src, comment="#", dtype={"time_utc": str}).iloc[:168].copy()
     f = name
-    n = lambda i: i + 1  # noqa: E731  (1-based data row for humans)
-
-    log(f, n(40), "wspd_ms", n(40), "spike", df.at[40, "wspd_ms"], df.at[40, "wspd_ms"] + 35.0, "spike",
+  
+    log(f, 40, "wspd_ms", "", "spike", df.at[40, "wspd_ms"], df.at[40, "wspd_ms"] + 35.0, "spike",
         "35 m/s jump for one hour")
     df.at[40, "wspd_ms"] = round(df.at[40, "wspd_ms"] + 35.0, 2)
-    log(f, n(90), "hs_m", n(90), "spike", df.at[90, "hs_m"], 9.5, "spike", "wave height jumps to 9.5 m for one hour")
+    log(f, 90, "hs_m", "", "spike", df.at[90, "hs_m"], 9.5, "spike", "wave height jumps to 9.5 m for one hour")
     df.at[90, "hs_m"] = 9.5
-    log(f, n(60), "rh_pct", n(60), "out_of_range", df.at[60, "rh_pct"], 140.0, "global_range", "humidity above 100 %")
+    log(f, 60, "rh_pct", "", "out_of_range", df.at[60, "rh_pct"], 140.0, "global_range", "humidity above 100 %")
     df.at[60, "rh_pct"] = 140.0
-    log(f, n(61), "airtemp_C", n(61), "out_of_range", df.at[61, "airtemp_C"], 75.0, "global_range", "air temperature 75 degC")
+    log(f, 61, "airtemp_C", "", "out_of_range", df.at[61, "airtemp_C"], 75.0, "global_range", "air temperature 75 degC")
     df.at[61, "airtemp_C"] = 75.0
-    log(f, n(20), "lat/lon", n(20), "position_on_land", f"{df.at[20, 'lat']},{df.at[20, 'lon']}", "19.0,74.0",
+    log(f, 20, "lat/lon", "", "position_on_land", f"{df.at[20, 'lat']},{df.at[20, 'lon']}", "19.0,74.0",
         "position_on_land", "inland Maharashtra, India; a moored buoy cannot be there")
     df.at[20, "lat"], df.at[20, "lon"] = 19.0, 74.0
-    log(f, n(100), "time_utc", n(100), "timestamp_duplicate", df.at[100, "time_utc"], df.at[99, "time_utc"],
+    log(f, 100, "time_utc", "", "timestamp_duplicate", df.at[100, "time_utc"], df.at[99, "time_utc"],
         "timestamp_monotonic", "same time as the previous row")
     df.at[100, "time_utc"] = df.at[99, "time_utc"]
     earlier = (pd.Timestamp(df.at[125, "time_utc"]) - pd.Timedelta(hours=2)).strftime("%Y-%m-%dT%H:%M:%SZ")
-    log(f, n(130), "time_utc", n(130), "timestamp_non_monotonic", df.at[130, "time_utc"], earlier,
+    log(f, 130, "time_utc", "", "timestamp_non_monotonic", df.at[130, "time_utc"], earlier,
         "timestamp_monotonic", "two hours before an earlier row")
     df.at[130, "time_utc"] = earlier
-    log(f, n(70), "airtemp_C", n(70), "missing", df.at[70, "airtemp_C"], "(empty)", "missing_value", "empty cell")
+    log(f, 70, "airtemp_C", "", "missing", df.at[70, "airtemp_C"], "(empty)", "missing_value", "empty cell")
     df.at[70, "airtemp_C"] = np.nan
-    log(f, n(71), "wdir_deg", n(71), "missing", df.at[71, "wdir_deg"], FILL_CSV, "missing_value", "fill value -999")
+    log(f, 71, "wdir_deg", "", "missing", df.at[71, "wdir_deg"], FILL_CSV, "missing_value", "fill value -999")
     df.at[71, "wdir_deg"] = FILL_CSV
 
     path = out / name
@@ -227,6 +239,40 @@ def buoy_subset(raw: Path, out: Path):
     return path
 
 
+def verify_key(out: Path):
+    """Prove every answer-key row points at the cell that was actually corrupted."""
+    key = pd.DataFrame(KEY)
+    argo = xr.open_dataset(out / "argo_profiles_errors.nc", mask_and_scale=False, decode_times=False)
+    csvs = {n: pd.read_csv(out / n, comment="#", dtype={"time_utc": str})
+            for n in ("ctd_casts_errors.csv", "buoy_met_wave_errors.csv")}
+    num = lambda v: float(v)  # noqa: E731
+    for _, k in key.iterrows():
+        ri, var, label = int(k.record_index), k.variable, f"key {k.error_id}"
+        inj = k.injected_value
+        if k.record_kind == "profile_index":
+            if var in ("TEMP", "PSAL"):
+                ok = argo[var].values[ri, int(k.level_index)] == num(inj)
+            elif var in ("LATITUDE", "JULD"):
+                ok = argo[var].values[ri] == num(inj)
+            else:  # LATITUDE/LONGITUDE pair
+                ok = bool(globe.is_land(argo["LATITUDE"].values[ri], argo["LONGITUDE"].values[ri]))
+        else:
+            df = csvs[k.file]
+            if k.cast_id:
+                ok = (df.at[ri, "cast_id"] == k.cast_id and df.at[ri, "depth_m"] == num(k.depth_m)
+                      and int(round(num(k.depth_m) / 2)) == int(k.level_index)
+                      and df.at[ri, var] == num(inj))
+            elif var == "lat/lon":
+                ok = bool(globe.is_land(df.at[ri, "lat"], df.at[ri, "lon"]))
+            elif var == "time_utc":
+                ok = df.at[ri, var] == str(inj)
+            elif str(inj) == "(empty)":
+                ok = pd.isna(df.at[ri, var])
+            else:
+                ok = df.at[ri, var] == num(inj)
+        check(f"answer key {k.error_id} points at the corrupted cell", ok)
+
+
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
     ap.add_argument("--raw", default="data/raw", type=Path)
@@ -235,6 +281,7 @@ def main():
     a.out.mkdir(parents=True, exist_ok=True)
     for fn in (argo_subset, ctd_subset, buoy_subset):
         print("wrote", fn(a.raw, a.out))
+    verify_key(a.out)
     key = pd.DataFrame(KEY)
     key.to_csv(a.out / "answer_key.csv", index=False)
     print(f"\nanswer_key.csv: {len(key)} injected errors")

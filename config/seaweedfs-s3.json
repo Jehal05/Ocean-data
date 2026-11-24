@@ -1,0 +1,14 @@
+{
+  "identities": [
+    {
+      "name": "scats",
+      "credentials": [
+        {
+          "accessKey": "scatsdev",
+          "secretKey": "scatsdev_secret_pw"
+        }
+      ],
+      "actions": ["Admin", "Read", "Write", "List", "Tagging"]
+    }
+  ]
+}

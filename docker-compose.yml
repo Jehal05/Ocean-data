@@ -1,5 +1,13 @@
 name: scats-poc
 
+# Object storage: SeaweedFS with its S3 gateway. MinIO's free community images are
+# no longer published, so this stack does not use them. Everything in this project
+# talks to storage only through the S3 API (S3_ENDPOINT / S3_ACCESS_KEY / S3_SECRET_KEY),
+# so another S3-compatible store can replace it by changing the `storage` service.
+#
+# S3_IMAGE is unpinned on purpose until it has been pulled once on your machine:
+# then run `docker compose images`, and set S3_IMAGE in .env to that exact tag.
+
 services:
   db:
     image: postgis/postgis:16-3.4
@@ -8,7 +16,7 @@ services:
       POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-scats_dev_pw}
       POSTGRES_DB: ${POSTGRES_DB:-scats}
     ports:
-      - "${DB_PORT:-5432}:5432"
+      - "127.0.0.1:${DB_PORT:-5432}:5432"       # localhost only
     volumes:
       - pgdata:/var/lib/postgresql/data
       - ./db/init:/docker-entrypoint-initdb.d:ro
@@ -18,35 +26,29 @@ services:
       timeout: 5s
       retries: 20
 
-  minio:
-    image: minio/minio:latest
-    command: server /data --console-address ":9001"
-    environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-scatsminio}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-scatsminio_dev_pw}
+  storage:
+    image: ${S3_IMAGE:-chrislusf/seaweedfs:latest}
+    command: server -dir=/data -volume.max=0 -s3 -s3.config=/etc/seaweedfs/s3.json
     ports:
-      - "${MINIO_PORT:-9000}:9000"
-      - "${MINIO_CONSOLE_PORT:-9001}:9001"
+      - "127.0.0.1:${S3_PORT:-8333}:8333"       # S3 API, localhost only
+      - "127.0.0.1:${STORAGE_UI_PORT:-9333}:9333" # SeaweedFS master status page
     volumes:
-      - miniodata:/data
-    healthcheck:
-      test: ["CMD", "mc", "ready", "local"]
-      interval: 5s
-      timeout: 5s
-      retries: 20
+      - storagedata:/data
+      - ./config/seaweedfs-s3.json:/etc/seaweedfs/s3.json:ro
 
-  # One-shot job: creates the three zone buckets, then exits.
-  minio-init:
-    image: minio/mc:latest
+  # One-shot job: waits for the S3 API, creates the three zone buckets, then exits.
+  # Uses the API image, so it needs no extra storage-client image.
+  storage-init:
+    build: ./components/07_data_access_api
+    command: ["python", "-m", "app.init_storage"]
     depends_on:
-      minio:
-        condition: service_healthy
+      storage:
+        condition: service_started
     environment:
-      MINIO_ROOT_USER: ${MINIO_ROOT_USER:-scatsminio}
-      MINIO_ROOT_PASSWORD: ${MINIO_ROOT_PASSWORD:-scatsminio_dev_pw}
-    volumes:
-      - ./scripts/init_buckets.sh:/init_buckets.sh:ro
-    entrypoint: ["/bin/sh", "/init_buckets.sh"]
+      S3_ENDPOINT: http://storage:8333
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-scatsdev}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-scatsdev_secret_pw}
+      ZONE_BUCKETS: raw,standardised,derived
     restart: "no"
 
   api:
@@ -54,17 +56,24 @@ services:
     depends_on:
       db:
         condition: service_healthy
-      minio-init:
+      storage-init:
         condition: service_completed_successfully
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-scats}:${POSTGRES_PASSWORD:-scats_dev_pw}@db:5432/${POSTGRES_DB:-scats}
-      S3_ENDPOINT: http://minio:9000
-      S3_ACCESS_KEY: ${MINIO_ROOT_USER:-scatsminio}
-      S3_SECRET_KEY: ${MINIO_ROOT_PASSWORD:-scatsminio_dev_pw}
+      # Least-privilege role created by db/init/002_app_role.sql (not the superuser).
+      DATABASE_URL: postgresql://scats_app:${APP_DB_PASSWORD:-scats_app_dev_pw}@db:5432/${POSTGRES_DB:-scats}
+      S3_ENDPOINT: http://storage:8333
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-scatsdev}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-scatsdev_secret_pw}
       ZONE_BUCKETS: raw,standardised,derived
     ports:
-      - "${API_PORT:-8000}:8000"
+      - "127.0.0.1:${API_PORT:-8000}:8000"      # localhost only
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8000/health/live', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 5s
 
 volumes:
   pgdata:
-  miniodata:
+  storagedata:

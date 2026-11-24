@@ -37,19 +37,27 @@ def main() -> int:
     ap.add_argument("--src", default="data/raw", type=Path)
     ap.add_argument("--bucket", default="raw")
     ap.add_argument("--prefix", default="")
-    ap.add_argument("--endpoint", default=os.getenv("S3_ENDPOINT", "http://localhost:9000"))
-    ap.add_argument("--access-key", default=os.getenv("S3_ACCESS_KEY", os.getenv("MINIO_ROOT_USER", "scatsminio")))
-    ap.add_argument("--secret-key", default=os.getenv("S3_SECRET_KEY", os.getenv("MINIO_ROOT_PASSWORD", "scatsminio_dev_pw")))
+    ap.add_argument("--manifest-only", action="store_true",
+                    help="only (re)write MANIFEST.sha256 from the local files; no network")
+    ap.add_argument("--endpoint", default=os.getenv("S3_ENDPOINT", "http://localhost:8333"))
+    ap.add_argument("--access-key", default=os.getenv("S3_ACCESS_KEY", "scatsdev"))
+    ap.add_argument("--secret-key", default=os.getenv("S3_SECRET_KEY", "scatsdev_secret_pw"))
     a = ap.parse_args()
 
-    s3 = boto3.client("s3", endpoint_url=a.endpoint, aws_access_key_id=a.access_key,
-                      aws_secret_access_key=a.secret_key, region_name="us-east-1",
-                      config=Config(signature_version="s3v4"))
     files = sorted(p for p in a.src.rglob("*") if p.is_file() and p.name != "MANIFEST.sha256")
     if not files:
         print(f"no files under {a.src}", file=sys.stderr)
         return 1
 
+    if a.manifest_only:
+        lines = [f"{sha256(p)}  {a.prefix + p.relative_to(a.src).as_posix()}" for p in files]
+        (a.src / "MANIFEST.sha256").write_text("\n".join(lines) + "\n")
+        print(f"wrote {a.src / 'MANIFEST.sha256'} ({len(lines)} files)")
+        return 0
+
+    s3 = boto3.client("s3", endpoint_url=a.endpoint, aws_access_key_id=a.access_key,
+                      aws_secret_access_key=a.secret_key, region_name="us-east-1",
+                      config=Config(signature_version="s3v4"))
     manifest, uploaded, skipped = [], 0, 0
     for p in files:
         key = a.prefix + p.relative_to(a.src).as_posix()
