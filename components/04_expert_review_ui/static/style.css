@@ -1,0 +1,25 @@
+:root { --fg:#16202a; --muted:#52606d; --line:#c9d2db; --bg:#fff; --accent:#0b5cad; --bad:#9b1c1c; --warn:#8a5a00; --ok:#17603a; }
+* { box-sizing: border-box; }
+body { margin:0; font:15px/1.45 system-ui, sans-serif; color:var(--fg); background:var(--bg); }
+header { display:flex; align-items:center; gap:2rem; padding:.6rem 1.2rem; border-bottom:1px solid var(--line); }
+h1 { font-size:1.15rem; margin:0; } h2 { font-size:1.1rem; margin:1.4rem 0 .5rem; } h3 { font-size:1rem; margin:1rem 0 .4rem; }
+main { padding:1rem 1.2rem 3rem; max-width:1200px; }
+nav a, nav button { margin-right:1rem; }
+a { color:var(--accent); }
+.skip { position:absolute; left:-999px; } .skip:focus { left:1rem; top:1rem; background:#fff; padding:.4rem; }
+table { border-collapse:collapse; width:100%; margin:.4rem 0; }
+th, td { border:1px solid var(--line); padding:.3rem .5rem; text-align:left; vertical-align:top; }
+th { background:#f2f5f8; }
+label { display:block; margin:.6rem 0 .2rem; font-weight:600; }
+input, select, textarea, button { font:inherit; padding:.35rem .5rem; }
+textarea { width:100%; min-height:4.5rem; }
+button { cursor:pointer; border:1px solid var(--accent); background:var(--accent); color:#fff; border-radius:3px; }
+button.secondary { background:#fff; color:var(--accent); }
+button:focus-visible, a:focus-visible, input:focus-visible, select:focus-visible, textarea:focus-visible { outline:3px solid #f5a623; outline-offset:2px; }
+.err { color:var(--bad); border:1px solid var(--bad); padding:.5rem .7rem; margin:.6rem 0; white-space:pre-wrap; }
+.note { color:var(--muted); } .warn { border:1px solid var(--warn); color:var(--warn); padding:.5rem .7rem; margin:.6rem 0; }
+.okmsg { border:1px solid var(--ok); color:var(--ok); padding:.5rem .7rem; margin:.6rem 0; white-space:pre-wrap; }
+.f4 { color:var(--bad); font-weight:700; } .f3 { color:var(--warn); font-weight:700; } .human { background:#eef6ff; }
+#banner .warn { margin:0; border-radius:0; border-width:0 0 1px; }
+.row { display:flex; gap:1rem; flex-wrap:wrap; align-items:end; } .row > div { min-width:10rem; }
+code { background:#f2f5f8; padding:0 .25rem; }

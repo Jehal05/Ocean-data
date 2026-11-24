@@ -106,7 +106,7 @@ QC flags are kept in two places that must agree:
 * **PostgreSQL** (`qc_flag`) holds one row per cell whose flag is 2, 3, 4, 5, 8 or 9, naming the test that set it, plus `observation.overall_flag`. Cells that are good (1) get no row. Grids get one summary row per time slice and variable for flags 3 and 4, because a per-cell table would be huge and land-masked cells are structural.
 * `scats_ingest.verify_flag_consistency()` recomputes the expected rows from the staging file and reports every difference. It runs after every ingest. Details and reasoning: `docs/phase2_design.md` section 3.
 
-Still open for Phase 3: the Zarr layout, and what happens to a cell that stops being flagged after a QC config change (its old row stays as history and the consistency check reports it).
+Phase 3 decisions: a flag only changes by adding a row; a person's row beats any automatic row (`qc_flag_current`); when a QC re-run no longer flags a cell a "cleared" automatic row is added, and a person's decision still wins. Zarr layout: see `docs/phase3_design.md`.
 
 ## 6. What Phase 1 delivered from this design
 

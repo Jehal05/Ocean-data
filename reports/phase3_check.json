@@ -1,0 +1,57 @@
+[
+ {
+  "check": "role matrix has a row for every route",
+  "status": "PASS",
+  "evidence": "24 rows; missing: []"
+ },
+ {
+  "check": "limits are in the API and the docs",
+  "status": "PASS",
+  "evidence": "6 limits; not in docs: 0"
+ },
+ {
+  "check": "qc_config.yaml unchanged since Phase 2",
+  "status": "PASS",
+  "evidence": "225bc3afe0a0ff0beddd693b22c7b23c2d4994c3bc1f3ebf2ba5268a1c9130f3"
+ },
+ {
+  "check": "store: Zarr round trip, lossless, safe write (unit)",
+  "status": "PASS",
+  "evidence": "...............                                                          [100%]"
+ },
+ {
+  "check": "database: least privilege, guards, auth, audit chain",
+  "status": "PASS",
+  "evidence": "...................................................                      [100%]"
+ },
+ {
+  "check": "API: authorisation matrix, four-eyes, publish, snapshot, XSS, injection, atomic audit",
+  "status": "PASS",
+  "evidence": "..........................................                               [100%]"
+ },
+ {
+  "check": "mutation check: every safeguard switched off is noticed",
+  "status": "PASS",
+  "evidence": "exit 0; see reports/phase3_mutation_check.md"
+ },
+ {
+  "check": "web UI driven in headless Chrome (login, flag change, approve, publish)",
+  "status": "PASS",
+  "evidence": "exit 0; see the output of tests/ui_check_phase3.py"
+ },
+ {
+  "check": "Phase 1-2 regression (check_phase2.py)",
+  "status": "PASS",
+  "evidence": "exit 2: 19 PASS, 0 FAIL, 1 SKIP"
+ },
+ {
+  "check": "lint (ruff F,E9)",
+  "status": "PASS",
+  "evidence": "All checks passed!"
+ },
+ {
+  "check": "Docker images / compose stack",
+  "status": "SKIP",
+  "evidence": "no Docker daemon: images not built, stack not run"
+ }
+]

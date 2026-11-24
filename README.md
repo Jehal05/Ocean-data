@@ -36,6 +36,35 @@ python tests/score_qc.py        # recall against the answer key, writes reports/
 * Design and every later change: `docs/phase2_design.md`.
 * **Local, pre-push commit only.** Nothing has been pushed.
 
+## Phase 3: accounts, expert review, Zarr store
+
+Branch `phase-3-review-store`. Design and choices: `docs/phase3_design.md`.
+
+**Run:** `docker compose up` starts `review-api` on http://127.0.0.1:8002 (web UI at `/`). Docker was not available where this was built, so the image and the stack are **not built / not run**; the code was run directly against stand-ins (PostgreSQL 16 without PostGIS, moto for S3). SeaweedFS compatibility is not claimed.
+
+**Dev accounts are unsafe.** `admin`, `reviewer` and `viewer` are created by `db/init/003_*` with published passwords. They exist only for local development. Change them (admin API `POST /admin/users/{name}/password`) before any real use; `/health` and the startup log warn while they are unchanged.
+
+**Review and publish** (roles: viewer reads, reviewer changes flags and decides, admin manages users):
+```
+TOKEN=$(curl -s -X POST localhost:8002/auth/login -H 'content-type: application/json' -d '{"username":"reviewer","password":"<password>"}' | jq -r .token)
+curl -X POST localhost:8002/datasets/<key>/review/start -H "Authorization: Bearer $TOKEN"
+curl localhost:8002/datasets/<key>/flags?flag=4 -H "Authorization: Bearer $TOKEN"
+curl -X POST localhost:8002/datasets/<key>/decision -H "Authorization: Bearer $TOKEN" -H 'content-type: application/json' -d '{"decision":"approve","comment":"checked"}'
+```
+Approval publishes the approved data to `standardised/<platform_type>/<key>.zarr/` (temp prefix, verified, then committed; manifest written last). Raw is never changed. Rejected data never reaches `standardised`.
+
+**Limits of the review service**
+* A flag change or confirmation takes at most 500 cells; list pages hold at most 200 rows.
+* Cell-level flag changes are not available for gridded datasets (SST, bathymetry); they can be confirmed, approved or rejected as a whole.
+* There is no per-user locking: if two reviewers change the same cell, both decisions are kept and the later one wins.
+* People may set flags 1 to 4 only, and cannot change a missing (9) cell. Data values are never edited.
+* observation.overall_flag keeps the automatic value; the effective flags are the ones listed under flags.
+* The review service reads the staging NetCDF file; if it is missing, cell views and changes return 503.
+* Zarr is read by downloading the store to a temporary directory (no lazy reads); Kerchunk/VirtualiZarr is deferred.
+* There is no admin web page; user management is API only.
+
+Checks: `python3 tests/check_phase3.py` (includes `tests/mutation_check_phase3.py`, output in `reports/phase3_mutation_check.md`).
+
 ## What has and has not been verified
 
 The Docker stack has **not yet been started end to end** by the author (no Docker daemon was available while building). Tested separately: the database schema and roles (on PostgreSQL 16 with PostGIS replaced by plain types), the API and upload script (against an S3 emulator), the data scripts and the answer key. Untested: the PostGIS-specific SQL, the SeaweedFS service settings, `fetch_public_data.py`. Run `docker compose up --build -d` and then `python tests/check_phase1.py`; fix anything it reports.
@@ -101,7 +130,7 @@ Prints PASS / FAIL / SKIP per acceptance criterion. SKIP means "could not be ver
 ```
 docker-compose.yml          the stack
 config/seaweedfs-s3.json    S3 credentials for the dev object store
-db/init/                    001 schema, 002 limited API role, 003 dev seed users, 004 ingest role, 005 ingest rights narrowed (Phase 2)
+db/init/                    001 schema, 002 limited API role, 003 dev seed users, 004 ingest role, 005 ingest rights narrowed (Phase 2), 006 auth, review, store (Phase 3)
 docs/architecture.md        component diagram, tech choices, scope, flag-storage decision
 docs/phase2_design.md       Phase 2 design note and the changes made after it
 docs/data_model.md          common data model (draft) and open questions for NPOL
@@ -109,8 +138,11 @@ components/                 one folder per component (01 to 08)
   01_data_sources/            sample data scripts
   02_parser_api/              parsers, YAML mappings, ingest service, FastAPI app, Dockerfile
   03_qc_framework/            ten QC tests, engine, versioned config
+  04_expert_review_ui/        review API (FastAPI) and the small web UI
+  05_data_store/              Zarr writer, reader and consistency check
   07_data_access_api/         FastAPI skeleton (health + catalogue) and storage init
   others                      placeholders with a README for their phase
+libs/scats_auth/            login, token and role checks (calls the database functions)
 libs/scats_common/          shared data model, units, flag scheme, validate_dataset()
 scripts/                    upload_raw.py
 reports/                    phase2_qc_score.json / .md (scoring output)
@@ -118,6 +150,7 @@ data/raw/                   sample data, five files, four dataset types
 data/test_errors/           corrupted copies + answer_key.csv (24 errors, 0-based indices)
 tests/check_phase1.py       Phase 1 acceptance check
 tests/check_phase2.py       Phase 2 acceptance check
+tests/check_phase3.py       Phase 3 acceptance check; tests/mutation_check_phase3.py switches safeguards off one at a time
 tests/score_qc.py           scoring harness (the only code that reads answer_key.csv)
 tests/unit, tests/integration, tests/db_stub.py   pytest suites and the PostgreSQL stand-in
 ```

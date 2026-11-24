@@ -110,3 +110,19 @@ def overall_flags(ds: xr.Dataset) -> np.ndarray:
                 parts.append(ds[aux].values[i:i + 1])
         out[i] = F.worst(np.concatenate([np.ravel(p) for p in parts])) if parts else 0
     return out
+
+
+def cleared_flag(ds: xr.Dataset, obs: int, variable: str, level: int) -> int:
+    """The flag a cell has NOW, for a cell that an earlier QC run had flagged and this run does not.
+
+    Used to write the "cleared" row (docs/phase3_design.md section 4). Grid summary rows have no single cell, so a
+    summary that no longer has any flag 3/4 cell is cleared to 1 (good) and the time flag is read as it is.
+    """
+    kind = kind_of(ds)
+    if variable in ("position", "time"):
+        name = f"{variable}_qc"
+        return int(ds[name].values[obs]) if name in ds else int(F.GOOD)
+    if kind in ("profile", "timeseries"):
+        q = ds[f"{variable}{FLAG_VAR_SUFFIX}"].values
+        return int(q[obs, level]) if kind == "profile" else int(q[obs])
+    return int(F.GOOD)

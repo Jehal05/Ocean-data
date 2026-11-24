@@ -1,5 +1,3 @@
 # 05 Scientific Data Store
 
-**Phase 3.** Not built yet.
-
-Phase 1 provides the three zone buckets (`raw`, `standardised`, `derived`; created by `storage-init`) and the catalogue tables. Phase 3 adds the Zarr / Kerchunk / VirtualiZarr writers and readers and the catalogue updates. Target layout is in `docs/data_model.md` section 7.
+**Phase 3, built (Zarr only).** `scats_store/` writes approved data to Zarr format 2 (Blosc/zstd, lossless) in `standardised/`, verifies it against the source, and can read it back and check it against the catalogue. Writes go to a temp prefix first; the manifest is written last. Kerchunk/VirtualiZarr is deferred. Layout and failure behaviour: `docs/phase3_design.md`. Tested with moto, not SeaweedFS.

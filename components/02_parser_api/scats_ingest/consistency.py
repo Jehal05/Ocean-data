@@ -38,9 +38,9 @@ def verify_flag_consistency(dataset_key: str, *, db_url: str, staging_dir: Path 
             row = cur.fetchone()
             if row is None:
                 return ConsistencyReport(dataset_key, False, len(want), 0, missing_in_db=["dataset not in database"])
-            cur.execute("SELECT o.source_record, q.variable_name, q.level_index, q.flag FROM qc_flag_current q"
+            cur.execute("SELECT o.source_record, q.variable_name, q.level_index, q.flag FROM qc_flag_auto_current q"
                         " JOIN observation o USING (observation_id) WHERE o.dataset_id = %s"
-                        " AND q.set_by_user_id IS NULL AND q.flag IN (2,3,4,5,8,9)", (row[0],))
+                        " AND q.flag IN (2,3,4,5,8,9)", (row[0],))
             have = {(a, b, c): d for a, b, c, d in cur.fetchall()}
             cur.execute("SELECT source_record, overall_flag FROM observation WHERE dataset_id = %s", (row[0],))
             db_overall = dict(cur.fetchall())

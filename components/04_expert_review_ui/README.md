@@ -1,5 +1,5 @@
 # 04 Expert Review Interface
 
-**Phase 3.** Not built yet.
+**Phase 3, built.** `review_api/` is a FastAPI service (login, role-checked routes, flag changes, review decisions, publish, audit). `static/` is a small web UI in plain JavaScript that writes text nodes only. Authorisation is server-side, from the role matrix in `review_api/policy.py`; an unlisted route is refused.
 
-Will provide: web application for authorised reviewers to inspect observations and profiles, approve or reject datasets, change flags, add comments and document corrective actions. Every action goes to the append-only `audit_log` (already in the schema, with a hash chain and blocked UPDATE/DELETE/TRUNCATE). Roles `viewer`, `reviewer`, `admin` already exist.
+Run: see the Phase 3 section of the top-level README. The Dockerfile is not built (no Docker daemon here). The UI was exercised only as described in `docs/phase3_design.md`.

@@ -101,7 +101,7 @@ def check_limits_documented():
     must = {
         "components/03_qc_framework/README.md": ["cannot see the first and last record", "ambiguous", "collateral", "units_assumed_from_mapping", "engineering judgement"],
         "docs/phase2_design.md": ["cannot see the first and last record", "ambiguous", "collateral", "units_assumed_from_mapping", "engineering judgement"],
-        "components/02_parser_api/app/main.py": ["cannot see the first and last record", "ambiguous", "neighbours", "units_assumed_from_mapping", "engineering judgement"],
+        "components/02_parser_api/scats_ingest/limits.py": ["cannot see the first and last record", "ambiguous", "neighbours", "units_assumed_from_mapping", "engineering judgement"],
     }
     missing = {f: [k for k in keys if k not in (ROOT / f).read_text()] for f, keys in must.items()}
     missing = {f: m for f, m in missing.items() if m}

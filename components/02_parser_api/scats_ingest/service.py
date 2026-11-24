@@ -15,10 +15,15 @@ from scats_common import MODEL
 from scats_parsers import parse_file
 from scats_qc import load_config, run_qc
 
+from scats_common.flags import PERSISTED as PERSISTED_FLAGS
+
 from . import rules
 from .staging import commit_staging, discard_temp_staging, slug, staging_path, write_temp_staging
 
 ACTOR = "scats_ingest"
+
+# Statuses in which a re-ingest of the same file is still allowed. Review decisions (approved, rejected, published) are final.
+REINGEST_OK = ("ingested", "qc_running", "qc_done", "in_review")
 
 
 class IngestError(RuntimeError):
@@ -44,6 +49,7 @@ class IngestResult:
     staging_path: str
     reingest: bool
     status: str = "qc_done"
+    flag_rows_cleared: int = 0
 
 
 def jsonable(x):
@@ -111,11 +117,11 @@ def _observation_tuples(ds, dataset_id: int, source_file: str, overall: np.ndarr
     return out
 
 
-def _audit(cur, action: str, key: str, before, after, comment: str):
+def _audit(cur, action: str, key: str, before, after, comment: str, actor: str = ACTOR, actor_id: int | None = None):
     cur.execute(
         "INSERT INTO audit_log (user_id, username, action, entity_type, entity_id, before_state, after_state, comment)"
-        " VALUES (NULL, %s, %s, 'dataset', %s, %s::jsonb, %s::jsonb, %s)",
-        (ACTOR, action, key, None if before is None else _dumps(before), _dumps(after), comment))
+        " VALUES (%s, %s, %s, 'dataset', %s, %s::jsonb, %s::jsonb, %s)",
+        (actor_id, actor, action, key, None if before is None else _dumps(before), _dumps(after), comment))
 
 
 def _existing_reference_time(db_url: str, key: str) -> str | None:
@@ -130,12 +136,14 @@ def _existing_reference_time(db_url: str, key: str) -> str | None:
 
 
 def ingest_file(path: Path | str, *, db_url: str, staging_dir: Path | str, cfg: dict | None = None,
-                tests=None, reference_time: str | None = None) -> IngestResult:
+                tests=None, reference_time: str | None = None, actor: str = ACTOR,
+                actor_id: int | None = None) -> IngestResult:
     """Parse -> QC -> database -> staging file.
 
     Order matters (review finding): the staging file is written under a temporary name, the database transaction is
     committed, and only then is the file renamed into place. A rejected or failed ingest therefore leaves both the
-    previous staging file and the database as they were. If the rename itself fails after the commit, the database is
+    previous staging file and the database as they were. `actor` is who asked for the ingest (the service, or the
+    admin whose token was used); it goes into the audit log and is what the four-eyes rule of Phase 3 compares with. If the rename itself fails after the commit, the database is
     ahead of staging; IngestError says so and verify_flag_consistency() reports it.
     """
     path = Path(path)
@@ -154,7 +162,7 @@ def ingest_file(path: Path | str, *, db_url: str, staging_dir: Path | str, cfg: 
         try:
             with con:                                         # one transaction: all or nothing
                 with con.cursor() as cur:
-                    result = _write(cur, ds, report, cfg, path, key, staging_path(staging_dir, key), overall, rows)
+                    result = _write(cur, ds, report, cfg, path, key, staging_path(staging_dir, key), overall, rows, actor, actor_id)
         finally:
             con.close()
     except BaseException:
@@ -169,11 +177,13 @@ def ingest_file(path: Path | str, *, db_url: str, staging_dir: Path | str, cfg: 
     return result
 
 
-def _write(cur, ds, report, cfg, path, key, staged, overall, rows) -> IngestResult:
+def _write(cur, ds, report, cfg, path, key, staged, overall, rows, actor=ACTOR, actor_id=None) -> IngestResult:
     a = ds.attrs
     sha = a["original_checksum_sha256"]
-    cur.execute("SELECT dataset_id, checksum_sha256 FROM dataset WHERE dataset_key = %s", (key,))
+    cur.execute("SELECT dataset_id, checksum_sha256, status FROM dataset WHERE dataset_key = %s FOR UPDATE", (key,))
     existing = cur.fetchone()
+    if existing and existing[2] not in REINGEST_OK:
+        raise IngestConflict(f"dataset '{key}' is '{existing[2]}': a reviewed dataset cannot be re-ingested")
     if existing and existing[1] != sha:
         raise IngestConflict(f"dataset '{key}' already exists with a different file checksum; "
                              f"rename the file or remove the old dataset first")
@@ -181,9 +191,11 @@ def _write(cur, ds, report, cfg, path, key, staged, overall, rows) -> IngestResu
               a["license"], _ts(a["time_coverage_start"]), _ts(a["time_coverage_end"]), _bbox_wkt(a), "raw",
               f"file://{path.resolve()}", Path(path).suffix.lstrip(".").lower(), sha, a["Conventions"],
               _dumps({k: v for k, v in a.items()}))
+    in_review = bool(existing) and existing[2] == "in_review"
     if existing:
         dataset_id = existing[0]
-        cur.execute("UPDATE dataset SET status = 'qc_running', updated_at = now() WHERE dataset_id = %s", (dataset_id,))
+        if not in_review:                                  # a dataset under review keeps its status
+            cur.execute("UPDATE dataset SET status = 'qc_running', updated_at = now() WHERE dataset_id = %s", (dataset_id,))
     else:
         cur.execute(
             "INSERT INTO dataset (dataset_key, title, dataset_type, source, instrument, is_synthetic, license,"
@@ -215,11 +227,20 @@ def _write(cur, ds, report, cfg, path, key, staged, overall, rows) -> IngestResu
     obs_id = {rec: oid for oid, rec in result}
 
     flag_rows = _flag_rows(ds, report, rows, obs_id)
-    cur.execute("SELECT q.observation_id, q.variable_name, q.level_index, q.flag, q.test_id FROM qc_flag_current q"
-                " JOIN observation o USING (observation_id) WHERE o.dataset_id = %s AND q.set_by_user_id IS NULL",
-                (dataset_id,))
+    cur.execute("SELECT q.observation_id, q.variable_name, q.level_index, q.flag, q.test_id FROM qc_flag_auto_current q"
+                " JOIN observation o USING (observation_id) WHERE o.dataset_id = %s", (dataset_id,))
     current = {(o, v, l): (f, t) for o, v, l, f, t in cur.fetchall()}
     new = [r for r in flag_rows if current.get(r[:3]) != (r[3], r[4])]
+    # A cell that was flagged by an earlier run and is not flagged now gets a CLEARED row (the old row stays as history).
+    # Without it the old flag would stay "current" for ever. A person's decision is not touched: the view lets it win.
+    wanted = {r[:3] for r in flag_rows}
+    id_to_rec = {oid: rec for rec, oid in obs_id.items()}
+    cleared = []
+    for (o, v, l), (f, t) in current.items():
+        if f in PERSISTED_FLAGS and (o, v, l) not in wanted and o in id_to_rec:
+            cleared.append((o, v, l, rules.cleared_flag(ds, id_to_rec[o], v, l), t,
+                            {"cleared_by_rerun": True, "previous_flag": f, "config_version": report.config_version}))
+    new = new + cleared
     if new:
         pgx.execute_values(cur, "INSERT INTO qc_flag (observation_id, variable_name, level_index, flag, test_id, detail)"
                                 " VALUES %s", [(*r[:5], _dumps(r[5])) for r in new],
@@ -230,16 +251,19 @@ def _write(cur, ds, report, cfg, path, key, staged, overall, rows) -> IngestResu
         counts[r[3]] = counts.get(r[3], 0) + 1
         tcounts[r[4]] = tcounts.get(r[4], 0) + 1
     reingest = existing is not None
-    cur.execute("UPDATE dataset SET status = 'qc_done', updated_at = now() WHERE dataset_id = %s", (dataset_id,))
+    if not in_review:                                      # the ingest role may not touch a row that is under review at all
+        cur.execute("UPDATE dataset SET status = 'qc_done', updated_at = now() WHERE dataset_id = %s", (dataset_id,))
     _audit(cur, "dataset.ingest", key, None if not reingest else {"status": "qc_done"},
            {"dataset_id": dataset_id, "n_observations": len(obs), "checksum_sha256": sha, "parser": a["parser"],
-            "staging": str(staged)}, "re-ingest of an existing dataset" if reingest else "first ingest")
+            "staging": str(staged)}, "re-ingest of an existing dataset" if reingest else "first ingest", actor, actor_id)
     _audit(cur, "qc.run", key, None,
            {"config_version": cfg_version(report), "tests": report.tests_run, "flag_rows": len(flag_rows),
-            "flag_rows_inserted": len(new), "flag_counts": counts, "test_counts": tcounts},
-           "automatic QC; flags from earlier runs are kept as history")
-    return IngestResult(key, dataset_id, a["dataset_type"], len(obs), len(flag_rows), len(new), counts, tcounts,
-                        int(overall.max()) if overall.size else 0, report.config_version, str(staged), reingest)
+            "flag_rows_inserted": len(new) - len(cleared), "flag_rows_cleared": len(cleared),
+            "flag_counts": counts, "test_counts": tcounts},
+           "automatic QC; flags from earlier runs are kept as history", actor, actor_id)
+    return IngestResult(key, dataset_id, a["dataset_type"], len(obs), len(flag_rows), len(new) - len(cleared), counts, tcounts,
+                        int(overall.max()) if overall.size else 0, report.config_version, str(staged), reingest,
+                        "in_review" if in_review else "qc_done", len(cleared))
 
 
 def cfg_version(report) -> str:

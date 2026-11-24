@@ -1,0 +1,179 @@
+{
+ "mutations": [
+  {
+   "mutation": "authorisation",
+   "file": "components/04_expert_review_ui/review_api/main.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_review_api.py::test_role_matrix_every_role_against_every_endpoint",
+   "guarding_tests": [
+    "tests/integration/test_review_api.py::test_role_matrix_every_role_against_every_endpoint"
+   ]
+  },
+  {
+   "mutation": "fail-closed on unlisted routes",
+   "file": "components/04_expert_review_ui/review_api/main.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_review_api.py::test_a_route_without_a_policy_row_is_refused",
+   "guarding_tests": [
+    "tests/integration/test_review_api.py::test_a_route_without_a_policy_row_is_refused"
+   ]
+  },
+  {
+   "mutation": "comment required (API)",
+   "file": "components/04_expert_review_ui/review_api/service.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_review_api.py::test_a_comment_is_required[]",
+   "guarding_tests": [
+    "tests/integration/test_review_api.py::test_a_comment_is_required",
+    "tests/integration/test_review_api.py::test_decisions_need_a_comment"
+   ]
+  },
+  {
+   "mutation": "four-eyes",
+   "file": "components/04_expert_review_ui/review_api/service.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_review_api.py::test_four_eyes_on_blocks_the_ingester_and_off_allows_it",
+   "guarding_tests": [
+    "tests/integration/test_review_api.py::test_four_eyes_on_blocks_the_ingester_and_off_allows_it"
+   ]
+  },
+  {
+   "mutation": "unreviewed flag-4 guard",
+   "file": "components/04_expert_review_ui/review_api/service.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_review_api.py::test_unreviewed_flag4_blocks_approval_unless_accepted_and_recorded",
+   "guarding_tests": [
+    "tests/integration/test_review_api.py::test_unreviewed_flag4_blocks_approval_unless_accepted_and_recorded"
+   ]
+  },
+  {
+   "mutation": "audit atomic with a flag change",
+   "file": "components/04_expert_review_ui/review_api/service.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_review_api.py::test_a_failing_audit_row_undoes_the_flag_change",
+   "guarding_tests": [
+    "tests/integration/test_review_api.py::test_a_failing_audit_row_undoes_the_flag_change"
+   ]
+  },
+  {
+   "mutation": "audit atomic with a status change",
+   "file": "components/04_expert_review_ui/review_api/service.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_review_api.py::test_a_failing_audit_row_undoes_the_status_change",
+   "guarding_tests": [
+    "tests/integration/test_review_api.py::test_a_failing_audit_row_undoes_the_status_change"
+   ]
+  },
+  {
+   "mutation": "publish uses the approved snapshot",
+   "file": "components/04_expert_review_ui/review_api/service.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_review_api.py::test_publish_uses_exactly_the_approved_snapshot",
+   "guarding_tests": [
+    "tests/integration/test_review_api.py::test_publish_uses_exactly_the_approved_snapshot"
+   ]
+  },
+  {
+   "mutation": "approval takes the exclusive lock",
+   "file": "components/04_expert_review_ui/review_api/service.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_review_api.py::test_an_approval_waits_for_a_change_in_progress_and_includes_it",
+   "guarding_tests": [
+    "tests/integration/test_review_api.py::test_an_approval_waits_for_a_change_in_progress_and_includes_it"
+   ]
+  },
+  {
+   "mutation": "cookie CSRF header",
+   "file": "libs/scats_auth/web.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_review_api.py::test_cookie_session_needs_the_csrf_header_on_changes",
+   "guarding_tests": [
+    "tests/integration/test_review_api.py::test_cookie_session_needs_the_csrf_header_on_changes"
+   ]
+  },
+  {
+   "mutation": "cleared rows after a config change",
+   "file": "components/02_parser_api/scats_ingest/service.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_review_api.py::test_a_cell_that_stops_being_flagged_is_cleared_and_overrides_still_win",
+   "guarding_tests": [
+    "tests/integration/test_review_api.py::test_a_cell_that_stops_being_flagged_is_cleared_and_overrides_still_win"
+   ]
+  },
+  {
+   "mutation": "verify uploaded objects",
+   "file": "components/05_data_store/scats_store/writer.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_review_api.py::test_a_corrupted_upload_is_caught_before_anything_is_published",
+   "guarding_tests": [
+    "tests/integration/test_review_api.py::test_a_corrupted_upload_is_caught_before_anything_is_published"
+   ]
+  },
+  {
+   "mutation": "human decision beats automatic (view)",
+   "file": "db/init/006_review_auth.sql",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_review_db.py::test_human_decision_beats_a_later_automatic_row",
+   "guarding_tests": [
+    "tests/integration/test_review_db.py::test_human_decision_beats_a_later_automatic_row",
+    "tests/integration/test_review_api.py::test_an_override_survives_a_qc_rerun"
+   ]
+  },
+  {
+   "mutation": "status transition guard (database)",
+   "file": "db/init/006_review_auth.sql",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_review_db.py::test_review_role_cannot_move_status_off_the_review_path",
+   "guarding_tests": [
+    "tests/integration/test_review_db.py::test_review_role_cannot_move_status_off_the_review_path"
+   ]
+  },
+  {
+   "mutation": "human-flag guard (database)",
+   "file": "db/init/006_review_auth.sql",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_review_db.py::test_human_flag_guard_refuses[kwargs0]",
+   "guarding_tests": [
+    "tests/integration/test_review_db.py::test_human_flag_guard_refuses"
+   ]
+  },
+  {
+   "mutation": "login rate limit (database)",
+   "file": "db/init/006_review_auth.sql",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_review_db.py::test_lock_after_failures_and_unlock_after_window",
+   "guarding_tests": [
+    "tests/integration/test_review_db.py::test_lock_after_failures_and_unlock_after_window",
+    "tests/integration/test_review_api.py::test_rate_limit_blocks_even_the_right_password_then_recovers"
+   ]
+  },
+  {
+   "mutation": "token expiry check (database)",
+   "file": "db/init/006_review_auth.sql",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_review_db.py::test_token_validity_rules",
+   "guarding_tests": [
+    "tests/integration/test_review_db.py::test_token_validity_rules",
+    "tests/integration/test_review_api.py::test_expired_and_revoked_tokens_are_refused"
+   ]
+  }
+ ],
+ "all_caught": true
+}

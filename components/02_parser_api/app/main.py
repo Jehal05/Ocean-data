@@ -7,7 +7,9 @@ Access rule (safe by default):
   * GET /datasets/{key}/qc-summary needs the same key whenever one is set. With no key set it is readable (read-only,
     bound to localhost by docker-compose).
   * /health and /parsers are always open.
-Real authentication and roles arrive with the review UI (Phase 3).
+Phase 3 adds a second way in: "Authorization: Bearer <token>" from POST /auth/login on the review service. POST /ingest
+accepts an ADMIN token (the ingest is then audited under that person's name) OR the service key. qc-summary accepts any
+valid token or the key. A bad or expired token is always 401, whatever the key settings are.
 """
 from __future__ import annotations
 
@@ -16,23 +18,18 @@ import os
 from pathlib import Path
 
 import psycopg2
-from fastapi import Depends, FastAPI, Header, HTTPException
+from fastapi import Depends, FastAPI, Header, HTTPException, Request
 from pydantic import BaseModel
 
+from scats_auth import validate_token
+from scats_auth.web import bearer_token
 from scats_ingest import IngestConflict, ingest_file, verify_flag_consistency
+from scats_ingest.limits import LIMITS
 from scats_parsers import ParseError, parsers
 from scats_parsers.base import __version__ as PARSER_VERSION
 from scats_qc import ALL_TESTS, load_config
 
-LIMITS = [
-    "The spike test cannot see the first and last record of a profile or series; they get range tests only.",
-    "timestamp_monotonic cannot tell which record is wrong when two consecutive records are wrong or a pair is swapped: it flags both as ambiguous. A forward jump on the last record is invisible.",
-    "density_inversion flags both levels of the offending pair, so a single bad value can earn soft flag 3 on its neighbours.",
-    "When units_assumed_from_mapping is true, the file did not declare its units and the YAML mapping was trusted.",
-    "Regional ranges and the buoy spike thresholds are engineering judgement; the Argo-derived thresholds were recalled from memory. All are open questions for NPOL.",
-]
-
-app = FastAPI(title="SCATS Parser API", version="0.3.0")
+app = FastAPI(title="SCATS Parser API", version="0.4.0")
 
 
 def settings() -> dict:
@@ -45,20 +42,44 @@ def settings() -> dict:
     }
 
 
+def _token_principal(request: Request):
+    """Principal of a Bearer token, None when no token was sent; 401 when one was sent and is not valid."""
+    token = bearer_token(request)
+    if token is None:
+        return None
+    try:
+        p = validate_token(settings()["db_url"], token)
+    except psycopg2.OperationalError:
+        raise HTTPException(503, "database unavailable")
+    if p is None:
+        raise HTTPException(401, "invalid or expired token")
+    return p
+
+
 def _check_key(x_api_key: str | None, *, write: bool):
     s = settings()
     if s["api_key"]:
         if not hmac.compare_digest(s["api_key"], x_api_key or ""):
             raise HTTPException(401, "missing or wrong X-API-Key")
     elif write and not s["allow_anonymous"]:
-        raise HTTPException(503, "ingest disabled: set INGEST_API_KEY (or INGEST_ALLOW_ANONYMOUS=true for development)")
+        raise HTTPException(503, "ingest disabled: send an admin Bearer token, or set INGEST_API_KEY "
+                                 "(INGEST_ALLOW_ANONYMOUS=true for development)")
 
 
-def require_key(x_api_key: str | None = Header(default=None)):
+def require_key(request: Request, x_api_key: str | None = Header(default=None)):
+    p = _token_principal(request)
+    if p is not None:
+        if not p.at_least("admin"):
+            raise HTTPException(403, "ingest needs the admin role")
+        request.state.actor = (p.username, p.user_id)
+        return
     _check_key(x_api_key, write=True)
+    request.state.actor = ("scats_ingest", None)
 
 
-def read_key(x_api_key: str | None = Header(default=None)):
+def read_key(request: Request, x_api_key: str | None = Header(default=None)):
+    if _token_principal(request) is not None:
+        return
     _check_key(x_api_key, write=False)
 
 
@@ -104,11 +125,12 @@ class IngestRequest(BaseModel):
 
 
 @app.post("/ingest", dependencies=[Depends(require_key)])
-def ingest(req: IngestRequest):
+def ingest(req: IngestRequest, request: Request):
     s = settings()
     path = resolve_allowed(req.path)
     try:
-        result = ingest_file(path, db_url=s["db_url"], staging_dir=s["staging_dir"])
+        actor, actor_id = request.state.actor
+        result = ingest_file(path, db_url=s["db_url"], staging_dir=s["staging_dir"], actor=actor, actor_id=actor_id)
     except ParseError as exc:
         raise HTTPException(422, f"cannot parse file: {exc}")
     except IngestConflict as exc:

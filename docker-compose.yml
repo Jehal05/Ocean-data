@@ -100,6 +100,41 @@ services:
       retries: 6
       start_period: 10s
 
+  # Phase 3: review service (login, flag review, approval, publish to Zarr) and its web page.
+  # Connects as scats_review (db/init/006_review_auth.sql), not the superuser. Not built in the authoring environment.
+  review-api:
+    build:
+      context: .                                       # repo root: the image needs libs/, ingest, QC and the store library
+      dockerfile: components/04_expert_review_ui/Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+      storage-init:
+        condition: service_completed_successfully
+    environment:
+      DATABASE_URL: postgresql://scats_review:${REVIEW_DB_PASSWORD:-scats_review_dev_pw}@db:5432/${POSTGRES_DB:-scats}
+      STAGING_DIR: /srv/staging
+      S3_ENDPOINT: http://storage:8333
+      S3_ACCESS_KEY: ${S3_ACCESS_KEY:-scatsdev}
+      S3_SECRET_KEY: ${S3_SECRET_KEY:-scatsdev_secret_pw}
+      REVIEW_FOUR_EYES: ${REVIEW_FOUR_EYES:-true}
+      PUBLISH_ON_APPROVAL: ${PUBLISH_ON_APPROVAL:-true}
+      AUTH_COOKIE_SECURE: ${AUTH_COOKIE_SECURE:-false}          # set true when served over https
+      AUTH_SESSION_TTL_SECONDS: ${AUTH_SESSION_TTL_SECONDS:-28800}
+      AUTH_MAX_FAILURES_USER: ${AUTH_MAX_FAILURES_USER:-5}
+      AUTH_MAX_FAILURES_IP: ${AUTH_MAX_FAILURES_IP:-20}
+      AUTH_WINDOW_SECONDS: ${AUTH_WINDOW_SECONDS:-900}
+    volumes:
+      - stagingdata:/srv/staging:ro                    # the review service only reads the staging files
+    ports:
+      - "127.0.0.1:${REVIEW_API_PORT:-8002}:8002"      # localhost only
+    healthcheck:
+      test: ["CMD", "python", "-c", "import urllib.request; urllib.request.urlopen('http://localhost:8002/health', timeout=3)"]
+      interval: 10s
+      timeout: 5s
+      retries: 6
+      start_period: 10s
+
 volumes:
   pgdata:
   storagedata:

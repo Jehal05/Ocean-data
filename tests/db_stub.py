@@ -23,6 +23,7 @@ PORT = int(os.getenv("SCATS_STUB_PORT", "55432"))
 DATA = Path(os.getenv("SCATS_STUB_DIR", "/tmp/scats_pg_stub"))
 DB = "scats"
 INGEST_URL = f"postgresql://scats_ingest:scats_ingest_dev_pw@127.0.0.1:{PORT}/{DB}"
+REVIEW_URL = f"postgresql://scats_review:scats_review_dev_pw@127.0.0.1:{PORT}/{DB}"
 APP_URL = f"postgresql://scats_app:scats_app_dev_pw@127.0.0.1:{PORT}/{DB}"
 ADMIN_URL = f"postgresql://pgt@127.0.0.1:{PORT}/{DB}"
 
@@ -80,6 +81,8 @@ def reset_data():
     con.autocommit = True
     cur = con.cursor()
     cur.execute("ALTER TABLE audit_log DISABLE TRIGGER USER")
-    cur.execute("TRUNCATE qc_flag, observation, dataset_variable, dataset, audit_log RESTART IDENTITY CASCADE")
+    cur.execute("TRUNCATE qc_flag, observation, dataset_variable, dataset, audit_log, login_attempt, auth_session RESTART IDENTITY CASCADE")
+    cur.execute("TRUNCATE app_user RESTART IDENTITY CASCADE")        # accounts back to the three seed users (ids 1, 2, 3)
+    cur.execute((ROOT / "db" / "init" / "003_dev_seed_users.sql").read_text())
     cur.execute("ALTER TABLE audit_log ENABLE TRIGGER USER")
     con.close()
