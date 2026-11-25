@@ -1,0 +1,16 @@
+# Derived-product definitions (Phase 4). Changing a number here changes config_sha256 and so the product version.
+# Every value is a definition, not a tuned threshold: see docs/phase4_design.md section 2.
+products_version: "0.1.0"
+good_flags: [1, 2]                  # only these flags are used; 3, 4, 9 never enter a product
+binned_profile:
+  # bin i is [edge_i, edge_i+1) in metres of depth; the last edge itself is outside
+  depth_bin_edges_m: [0, 5, 15, 25, 40, 60, 90, 125, 175, 250, 350, 450, 600, 800, 1000, 1500, 2000]
+  min_obs: 1                        # good values needed in a bin; fewer gives a missing value
+  variables: [temperature, salinity, sound_velocity]
+series:
+  hourly: {min_obs: 1}
+  daily: {min_obs: 18}              # 75 percent of 24 hourly values
+  circular_units: [degree]          # variables with these units get a circular mean and no min/max
+sst_monthly_mean:
+  variable: sea_surface_temperature
+  min_obs: 15                       # about half the days of a month

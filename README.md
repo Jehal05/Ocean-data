@@ -26,7 +26,8 @@ curl localhost:8001/parsers
 curl -X POST localhost:8001/ingest -H "X-API-Key: $INGEST_API_KEY" -H 'content-type: application/json' -d '{"path": "/srv/data/test_errors/buoy_met_wave_errors.csv"}'
 curl -H "X-API-Key: $INGEST_API_KEY" localhost:8001/datasets/buoy_met_wave_errors/qc-summary
 python tests/check_phase2.py    # acceptance check, PASS / FAIL / SKIP with evidence
-python tests/score_qc.py        # recall against the answer key, writes reports/phase2_qc_score.md
+python tests/check_phase4.py       Phase 4 acceptance check; tests/mutation_check_phase4.py switches safeguards off one at a time
+tests/score_qc.py        # recall against the answer key, writes reports/phase2_qc_score.md
 ```
 
 * Five parsers (Argo NetCDF, ship CTD CSV, buoy CSV, SST grid, bathymetry grid) turn files into the common data model. Names, units and fill values live in `components/02_parser_api/scats_parsers/mappings/*.yaml`.
@@ -64,6 +65,57 @@ Approval publishes the approved data to `standardised/<platform_type>/<key>.zarr
 * There is no admin web page; user management is API only.
 
 Checks: `python3 tests/check_phase3.py` (includes `tests/mutation_check_phase3.py`, output in `reports/phase3_mutation_check.md`).
+
+## Phase 4: derived products and the data access API
+
+Branch `phase-4-products-access`. Design and "as built": `docs/phase4_design.md`.
+
+**Run:** `docker compose up` starts the access API (`api`, http://127.0.0.1:8000). The `products` service is under the `tools` profile: `docker compose --profile tools run --rm products python -m scats_products build`. Docker was not available where this was built, so **neither image was built or run**; `docker compose config -q` passes. The code was run directly against stand-ins: PostgreSQL 16 **without PostGIS** (geography columns are text) and moto for S3. SeaweedFS and PostGIS behaviour are **not** claimed.
+
+**Dev accounts are unsafe.** Development accounts admin, reviewer and viewer still have their published passwords. Anyone who has read the repository can log in. Change them before any real use.
+
+**Build products** (only from datasets with status `published`; reads through `scats_store.read_store`, never staging or raw):
+```
+python -m scats_products build                        # every published dataset, every product kind that fits it
+python -m scats_products build --dataset <key>        # one dataset
+python -m scats_products build --dataset <key> --force   # new version even if nothing changed
+```
+Products: `binned_profile` (Argo, CTD), `series_hourly` and `series_daily` (buoys), `sst_monthly_mean` (SST). Bathymetry has no product: the standardised Zarr is enough. Products are written to `derived/<kind>/<dataset_key>/v<N>.zarr/`; a rebuild writes `v<N+1>` and supersedes the old row, nothing is erased. Same inputs and code give the same `content_sha256`.
+
+**Use the API** (same accounts and tokens as the review API):
+```
+TOKEN=$(curl -s -X POST localhost:8000/auth/login -H 'content-type: application/json' -d '{"username":"viewer","password":"<password>"}' | jq -r .token)
+curl -H "Authorization: Bearer $TOKEN" 'localhost:8000/datasets?variable=temperature&platform_type=argo_float'
+curl -H "Authorization: Bearer $TOKEN" localhost:8000/datasets/<key>                       # metadata, citation fields
+curl -H "Authorization: Bearer $TOKEN" 'localhost:8000/datasets/<key>/subset?bbox=60,5,80,20&time_from=2025-01-01&time_to=2025-01-31&depth_max=200&quality=good'
+curl -H "Authorization: Bearer $TOKEN" -OJ 'localhost:8000/products/<product_key>/download?format=csv'     # or format=netcdf
+curl -H "Authorization: Bearer $TOKEN" localhost:8000/limits                                # the limits that apply to you
+```
+Every answer carries `data_version`, `product_version`, `qc_config_sha256` and the flags used. `quality=good` (the default) hides values whose flag is not 1 or 2 and drops records with a bad position or time flag; `quality=all` returns everything with its flag. `bbox` is `west,south,east,north`; west > east crosses 180 degrees. Without PostGIS, bbox search compares plain latitude/longitude numbers; with PostGIS it would use `ST_Intersects` on the stored geography and a spatial index (not tested here).
+
+**Limits** (per role, changed only by an admin with `PUT /admin/limits/<role>/<name>`, always inside the hard maximum; every change is audited):
+
+| Limit | Default | Hard maximum | Meaning |
+|---|---|---|---|
+| `page_size_max` | 200 | 1000 | rows per JSON page |
+| `max_rows_subset` | 5000 | 20000 | rows one subset call may select (refused above, never cut) |
+| `max_rows_download` | 500000 | 5000000 | rows one download may select |
+| `max_bytes_download` | 104857600 | 1073741824 | size of the produced file |
+| `max_time_span_days` | 366 | 3660 | time range of one request (a request without a time filter on a longer collection is refused) |
+| `max_bbox_area_deg2` | 10000 | 64800 | area of the bounding box in square degrees |
+| `request_timeout_s` | 30 | 300 | time budget; checked between reads, a running read is not cancelled |
+| `rate_per_minute` | 60 | 6000 | requests per user per minute (HTTP 429) |
+
+* Over a limit the answer is 413, 422 or 429 with the limit and the value; a result is never cut silently.
+* A page that is not the last says truncated=true and next_page.
+* Time budget (request_timeout_s) is checked between reads: a read that is already running is not cancelled.
+* Refused requests (bad filter, over a limit) are not written to the query log; only answered requests are.
+* Dataset extents come from the dataset attributes as numbers; a dataset that crosses 180 degrees longitude is listed by its min/max and may match more boxes than it should.
+* NetCDF and CSV downloads hold the same rows (one dimension 'row'); gridded data is not rebuilt into a grid.
+
+**Not verified:** Docker images and the compose stack; SeaweedFS; PostGIS spatial SQL; behaviour with real (not synthetic) data volumes or many concurrent users; the time budget is checked between object reads only. Downloads are built in memory before they are sent (bounded by `max_bytes_download`), not streamed. `viewer` and `reviewer` see the same data (no confidentiality classes yet). No dashboard or map (Phase 5).
+
+Checks: `python3 tests/check_phase4.py` (runs the new suites, `tests/mutation_check_phase4.py`, `tests/check_phase3.py` and ruff; output in `reports/phase4_check.json` and `reports/phase4_mutation_check.md`).
 
 ## What has and has not been verified
 
@@ -130,7 +182,7 @@ Prints PASS / FAIL / SKIP per acceptance criterion. SKIP means "could not be ver
 ```
 docker-compose.yml          the stack
 config/seaweedfs-s3.json    S3 credentials for the dev object store
-db/init/                    001 schema, 002 limited API role, 003 dev seed users, 004 ingest role, 005 ingest rights narrowed (Phase 2), 006 auth, review, store (Phase 3)
+db/init/                    001 schema, 002 limited API role, 003 dev seed users, 004 ingest role, 005 ingest rights narrowed (Phase 2), 006 auth, review, store (Phase 3), 007 products, access roles, limits, query log (Phase 4)
 docs/architecture.md        component diagram, tech choices, scope, flag-storage decision
 docs/phase2_design.md       Phase 2 design note and the changes made after it
 docs/data_model.md          common data model (draft) and open questions for NPOL
@@ -139,8 +191,9 @@ components/                 one folder per component (01 to 08)
   02_parser_api/              parsers, YAML mappings, ingest service, FastAPI app, Dockerfile
   03_qc_framework/            ten QC tests, engine, versioned config
   04_expert_review_ui/        review API (FastAPI) and the small web UI
-  05_data_store/              Zarr writer, reader and consistency check
-  07_data_access_api/         FastAPI skeleton (health + catalogue) and storage init
+  05_data_store/              Zarr writer (safe write), reader, lazy read-only store, consistency check
+  06_products_pipeline/       derived products (binned profiles, hourly/daily series, monthly SST), lineage
+  07_data_access_api/         access API: discovery, subset, download, limits, query log; storage init
   others                      placeholders with a README for their phase
 libs/scats_auth/            login, token and role checks (calls the database functions)
 libs/scats_common/          shared data model, units, flag scheme, validate_dataset()
@@ -151,6 +204,7 @@ data/test_errors/           corrupted copies + answer_key.csv (24 errors, 0-base
 tests/check_phase1.py       Phase 1 acceptance check
 tests/check_phase2.py       Phase 2 acceptance check
 tests/check_phase3.py       Phase 3 acceptance check; tests/mutation_check_phase3.py switches safeguards off one at a time
+tests/check_phase4.py       Phase 4 acceptance check; tests/mutation_check_phase4.py switches safeguards off one at a time
 tests/score_qc.py           scoring harness (the only code that reads answer_key.csv)
 tests/unit, tests/integration, tests/db_stub.py   pytest suites and the PostgreSQL stand-in
 ```

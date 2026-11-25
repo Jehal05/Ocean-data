@@ -25,6 +25,8 @@ DB = "scats"
 INGEST_URL = f"postgresql://scats_ingest:scats_ingest_dev_pw@127.0.0.1:{PORT}/{DB}"
 REVIEW_URL = f"postgresql://scats_review:scats_review_dev_pw@127.0.0.1:{PORT}/{DB}"
 APP_URL = f"postgresql://scats_app:scats_app_dev_pw@127.0.0.1:{PORT}/{DB}"
+ACCESS_URL = f"postgresql://scats_access:scats_access_dev_pw@127.0.0.1:{PORT}/{DB}"
+PRODUCTS_URL = f"postgresql://scats_products:scats_products_dev_pw@127.0.0.1:{PORT}/{DB}"
 ADMIN_URL = f"postgresql://pgt@127.0.0.1:{PORT}/{DB}"
 
 
@@ -75,13 +77,21 @@ def stop():
         _run(f"{BIN}/pg_ctl -D {DATA} -m immediate stop", check=False)
 
 
+API_LIMIT_DEFAULTS = {"page_size_max": 200, "max_rows_subset": 5000, "max_rows_download": 500000, "max_bytes_download": 104857600,
+                      "max_time_span_days": 366, "max_bbox_area_deg2": 10000, "request_timeout_s": 30, "rate_per_minute": 60}
+
+
 def reset_data():
     """Empty the data tables between tests (superuser only; the audit triggers are bypassed for the stand-in)."""
     con = psycopg2.connect(ADMIN_URL)
     con.autocommit = True
     cur = con.cursor()
     cur.execute("ALTER TABLE audit_log DISABLE TRIGGER USER")
-    cur.execute("TRUNCATE qc_flag, observation, dataset_variable, dataset, audit_log, login_attempt, auth_session RESTART IDENTITY CASCADE")
+    cur.execute("ALTER TABLE query_log DISABLE TRIGGER USER")
+    cur.execute("TRUNCATE qc_flag, observation, dataset_variable, dataset, derived_product, audit_log, query_log, login_attempt, auth_session RESTART IDENTITY CASCADE")
+    cur.execute("ALTER TABLE query_log ENABLE TRIGGER USER")
+    for name, value in API_LIMIT_DEFAULTS.items():
+        cur.execute("UPDATE api_limit SET value = %s, updated_by = 'migration 007' WHERE name = %s", (value, name))
     cur.execute("TRUNCATE app_user RESTART IDENTITY CASCADE")        # accounts back to the three seed users (ids 1, 2, 3)
     cur.execute((ROOT / "db" / "init" / "003_dev_seed_users.sql").read_text())
     cur.execute("ALTER TABLE audit_log ENABLE TRIGGER USER")

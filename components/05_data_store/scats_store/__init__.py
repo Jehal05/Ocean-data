@@ -5,4 +5,4 @@ from .consistency import StoreConsistency, verify_store_consistency  # noqa: F40
 from .layout import TARGET_CHUNK_BYTES, ZARR_FORMAT, chunks_for, store_prefix  # noqa: F401
 from .reader import StoreCorrupt, read_store  # noqa: F401
 from .s3 import S3Store  # noqa: F401
-from .writer import MANIFEST_NAME, PublishError, PublishResult, publish_zarr  # noqa: F401
+from .writer import MANIFEST_NAME, PublishError, PublishResult, publish_zarr, write_zarr_safe  # noqa: F401

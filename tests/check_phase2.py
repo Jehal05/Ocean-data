@@ -220,6 +220,8 @@ def check_phase1_regression():
     env = dict(os.environ, S3_ENDPOINT="http://127.0.0.1:18333", S3_ACCESS_KEY="scatsdev", S3_SECRET_KEY="scatsdev_secret_pw",
                ZONE_BUCKETS="raw,standardised,derived", DATABASE_URL=db_stub.APP_URL, API_URL="http://127.0.0.1:18000",
                AWS_ACCESS_KEY_ID="scatsdev", AWS_SECRET_ACCESS_KEY="scatsdev_secret_pw")
+    # Phase 4: the access API imports the shared libs and the store (the Docker image copies them in); here they are put on the path
+    env["PYTHONPATH"] = os.pathsep.join(str(ROOT / p) for p in ("libs", "components/02_parser_api", "components/03_qc_framework", "components/05_data_store", "components/07_data_access_api"))
     procs = []
     try:
         procs.append(subprocess.Popen(["moto_server", "-p", "18333"], stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL))

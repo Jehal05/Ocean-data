@@ -135,6 +135,24 @@ Rules:
     attrs:   dataset-level metadata from section 5
 ```
 
+### Derived zone (Phase 4)
+
+```
+derived/<kind>/<dataset_key>/v<N>.zarr/       kind = binned_profile | series_hourly | series_daily | sst_monthly_mean
+    <variable>, <variable>_n_obs (counts), plus _mean/_min/_max/_count for series; scats_manifest.json written last
+    group attrs: product_kind, source_dataset_key, flags_used, processing_level = derived, scats_lineage (JSON)
+```
+Format 2, Blosc/zstd. N counts up; an old version stays in the store and in `derived_product` with `superseded_at`.
+
+Lineage record (sorted JSON, also stored in `derived_product.lineage`; contains no timestamp except the source's `published_at`):
+```
+{"kind", "product_key", "version", "code_version", "code_sha256", "config_sha256",
+ "source": {"dataset_key", "dataset_id", "store_uri", "store_manifest_sha256", "store_content_sha256",
+            "review_id", "review_version", "qc_config_version", "qc_config_sha256", "published_at"},
+ "flags_used": [1, 2], "parameters": {...}}
+```
+`qc_config_sha256` is filled only when the shipped QC config has the same version as the one the dataset was checked with, otherwise it is null.
+
 ## 8. Open questions for NPOL
 
 1. Which instrument formats must be supported first, and can sample files be shared?

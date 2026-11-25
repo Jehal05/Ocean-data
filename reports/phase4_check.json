@@ -1,0 +1,162 @@
+[
+ {
+  "check": "role matrix has a row for every route and no row without a route",
+  "status": "PASS",
+  "evidence": "19 routes, 19 rows; missing []; extra []"
+ },
+ {
+  "check": "docs and openapi are off",
+  "status": "PASS",
+  "evidence": "docs_url=None openapi_url=None"
+ },
+ {
+  "check": "limits are stated in code and in docs",
+  "status": "PASS",
+  "evidence": "6 statements, not in docs: 0; every limit name in docs: True"
+ },
+ {
+  "check": "qc_config.yaml unchanged since Phase 2",
+  "status": "PASS",
+  "evidence": "225bc3afe0a0ff0beddd693b22c7b23c2d4994c3bc1f3ebf2ba5268a1c9130f3"
+ },
+ {
+  "check": "migrations 001-006, the review API and QC are unchanged since Phase 3 (007 is additive)",
+  "status": "PASS",
+  "evidence": "changed: []; db/init status: ['db/init/007_products_access.sql']"
+ },
+ {
+  "check": "products: hand-computed values, good-flag filter (unit)",
+  "status": "PASS",
+  "evidence": ".............                                                            [100%]"
+ },
+ {
+  "check": "access: filters, hostile values, engine, outputs, lazy store (unit)",
+  "status": "PASS",
+  "evidence": ".................................................                        [100%]"
+ },
+ {
+  "check": "least-privilege roles scats_products / scats_access (parametrised denials)",
+  "status": "PASS",
+  "evidence": ".................................................                        [100%]"
+ },
+ {
+  "check": "database: stale triggers, views, versions",
+  "status": "PASS",
+  "evidence": "..........................................................               [100%]"
+ },
+ {
+  "check": "published-only input",
+  "status": "PASS",
+  "evidence": ".............                                                            [100%]"
+ },
+ {
+  "check": "lineage record",
+  "status": "PASS",
+  "evidence": "..                                                                       [100%]"
+ },
+ {
+  "check": "determinism of every product kind",
+  "status": "PASS",
+  "evidence": "....                                                                     [100%]"
+ },
+ {
+  "check": "stale marking and rebuild",
+  "status": "PASS",
+  "evidence": "...                                                                      [100%]"
+ },
+ {
+  "check": "safe write of derived products (failure injection)",
+  "status": "PASS",
+  "evidence": "......                                                                   [100%]"
+ },
+ {
+  "check": "product pipeline: whole file",
+  "status": "PASS",
+  "evidence": "....................................                                     [100%]"
+ },
+ {
+  "check": "authentication",
+  "status": "PASS",
+  "evidence": ".....                                                                    [100%]"
+ },
+ {
+  "check": "authorisation matrix (every role x every route)",
+  "status": "PASS",
+  "evidence": "....                                                                     [100%]"
+ },
+ {
+  "check": "lazy subset read (objects counted)",
+  "status": "PASS",
+  "evidence": "...                                                                      [100%]"
+ },
+ {
+  "check": "limits enforced (413/422/429/504, truncated pages say so)",
+  "status": "PASS",
+  "evidence": ".....                                                                    [100%]"
+ },
+ {
+  "check": "hostile filters never give 500 or run as SQL",
+  "status": "PASS",
+  "evidence": "............................................                             [100%]"
+ },
+ {
+  "check": "CSV formula injection",
+  "status": "PASS",
+  "evidence": "..                                                                       [100%]"
+ },
+ {
+  "check": "query-log atomicity",
+  "status": "PASS",
+  "evidence": "....                                                                     [100%]"
+ },
+ {
+  "check": "good-flag filter through the API",
+  "status": "PASS",
+  "evidence": "..                                                                       [100%]"
+ },
+ {
+  "check": "stale product flagged and not served",
+  "status": "PASS",
+  "evidence": "..                                                                       [100%]"
+ },
+ {
+  "check": "download round trip (CSV, NetCDF, product, headers, names)",
+  "status": "PASS",
+  "evidence": "....                                                                     [100%]"
+ },
+ {
+  "check": "answers carry data_version / product_version / qc sha / flags",
+  "status": "PASS",
+  "evidence": "...                                                                      [100%]"
+ },
+ {
+  "check": "access API: whole file",
+  "status": "PASS",
+  "evidence": "...............                                                          [100%]"
+ },
+ {
+  "check": "mutation check: every safeguard switched off is noticed",
+  "status": "PASS",
+  "evidence": "exit 0; see reports/phase4_mutation_check.md"
+ },
+ {
+  "check": "Phase 1-3 regression (check_phase3.py)",
+  "status": "PASS",
+  "evidence": "exit 2: 11 checks: 0 FAIL, 1 SKIP"
+ },
+ {
+  "check": "lint (ruff F,E9)",
+  "status": "PASS",
+  "evidence": "All checks passed!"
+ },
+ {
+  "check": "docker compose file is valid",
+  "status": "PASS",
+  "evidence": "ok"
+ },
+ {
+  "check": "Docker images / compose stack run",
+  "status": "SKIP",
+  "evidence": "no Docker daemon: images not built, stack not run; SeaweedFS and PostGIS behaviour not verified (moto and plain PostgreSQL stand in)"
+ }
+]

@@ -1,0 +1,11 @@
+numpy
+xarray
+pandas
+zarr==3.4.2
+numcodecs==0.17.1
+boto3
+psycopg2-binary
+pyyaml
+gsw>=3.6
+global-land-mask>=1.0
+netCDF4>=1.7

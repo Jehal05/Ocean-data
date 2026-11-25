@@ -1,0 +1,140 @@
+{
+ "mutations": [
+  {
+   "mutation": "authorisation check",
+   "file": "components/07_data_access_api/access_api/main.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_access_api.py::test_role_matrix_every_role_against_every_endpoint",
+   "guarding_tests": [
+    "tests/integration/test_access_api.py::test_role_matrix_every_role_against_every_endpoint"
+   ]
+  },
+  {
+   "mutation": "fail-closed on an unlisted route",
+   "file": "components/07_data_access_api/access_api/main.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_access_api.py::test_a_route_without_a_policy_row_is_refused",
+   "guarding_tests": [
+    "tests/integration/test_access_api.py::test_a_route_without_a_policy_row_is_refused"
+   ]
+  },
+  {
+   "mutation": "published-only input filter",
+   "file": "components/06_products_pipeline/scats_products/pipeline.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_products_pipeline.py::test_only_published_data_is_ever_read[False-ingested]",
+   "guarding_tests": [
+    "tests/integration/test_products_pipeline.py::test_only_published_data_is_ever_read"
+   ]
+  },
+  {
+   "mutation": "good-flag filter",
+   "file": "components/06_products_pipeline/scats_products/binning.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/unit/test_products.py::test_flags_3_4_9_never_enter_a_product",
+   "guarding_tests": [
+    "tests/unit/test_products.py::test_flags_3_4_9_never_enter_a_product",
+    "tests/integration/test_products_pipeline.py::test_the_product_values_in_the_store_are_the_hand_computed_ones"
+   ]
+  },
+  {
+   "mutation": "stale marking (trigger)",
+   "file": "db/init/007_products_access.sql",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_products_db.py::test_the_trigger_marks_products_stale_when_the_dataset_leaves_published",
+   "guarding_tests": [
+    "tests/integration/test_products_db.py::test_the_trigger_marks_products_stale_when_the_dataset_leaves_published"
+   ]
+  },
+  {
+   "mutation": "stale marking (view notices a new review)",
+   "file": "db/init/007_products_access.sql",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_products_db.py::test_the_view_notices_a_new_review_version",
+   "guarding_tests": [
+    "tests/integration/test_products_db.py::test_the_view_notices_a_new_review_version"
+   ]
+  },
+  {
+   "mutation": "query-log atomicity",
+   "file": "components/07_data_access_api/access_api/service.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_access_api.py::test_if_the_log_row_cannot_be_written_nothing_is_returned",
+   "guarding_tests": [
+    "tests/integration/test_access_api.py::test_if_the_log_row_cannot_be_written_nothing_is_returned",
+    "tests/integration/test_access_api.py::test_every_answered_request_is_logged_and_refused_ones_are_not"
+   ]
+  },
+  {
+   "mutation": "row limit",
+   "file": "components/07_data_access_api/access_api/service.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_access_api.py::test_every_limit_is_enforced_once",
+   "guarding_tests": [
+    "tests/integration/test_access_api.py::test_every_limit_is_enforced_once"
+   ]
+  },
+  {
+   "mutation": "CSV formula neutralisation",
+   "file": "components/07_data_access_api/access_api/outputs.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/unit/test_access.py::test_csv_cells_that_look_like_formulas_are_neutralised_but_numbers_are_not",
+   "guarding_tests": [
+    "tests/unit/test_access.py::test_csv_cells_that_look_like_formulas_are_neutralised_but_numbers_are_not",
+    "tests/integration/test_access_api.py::test_csv_cells_that_would_run_as_formulas_are_neutralised"
+   ]
+  },
+  {
+   "mutation": "hostile-filter validation",
+   "file": "components/07_data_access_api/access_api/filters.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/unit/test_access.py::test_hostile_or_malformed_filters_are_refused[bbox=a,b,c,d]",
+   "guarding_tests": [
+    "tests/unit/test_access.py::test_hostile_or_malformed_filters_are_refused"
+   ]
+  },
+  {
+   "mutation": "lazy read (reads everything)",
+   "file": "components/05_data_store/scats_store/lazy.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/unit/test_access.py::test_a_small_window_reads_only_the_chunks_it_needs",
+   "guarding_tests": [
+    "tests/unit/test_access.py::test_a_small_window_reads_only_the_chunks_it_needs",
+    "tests/integration/test_access_api.py::test_a_small_request_reads_few_objects"
+   ]
+  },
+  {
+   "mutation": "determinism (a timestamp in the product)",
+   "file": "components/06_products_pipeline/scats_products/pipeline.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_products_pipeline.py::test_the_same_inputs_and_code_give_the_same_checksums[binned_profile-tiny_profiles]",
+   "guarding_tests": [
+    "tests/integration/test_products_pipeline.py::test_the_same_inputs_and_code_give_the_same_checksums"
+   ]
+  },
+  {
+   "mutation": "object checksum check (lazy store)",
+   "file": "components/05_data_store/scats_store/lazy.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/unit/test_access.py::test_a_changed_object_or_manifest_is_refused",
+   "guarding_tests": [
+    "tests/unit/test_access.py::test_a_changed_object_or_manifest_is_refused",
+    "tests/integration/test_access_api.py::test_a_changed_object_in_the_store_is_caught_and_nothing_is_returned"
+   ]
+  }
+ ],
+ "all_caught": true
+}

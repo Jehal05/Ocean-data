@@ -47,21 +47,26 @@ class PublishResult:
     total_bytes: int
 
 
-def _encoding(ds: xr.Dataset) -> dict:
+def default_chunker(ds: xr.Dataset):
+    kind = ds.attrs["dataset_type"]
+    return lambda name, dims, shape, itemsize: chunks_for(kind, dims, shape, itemsize)
+
+
+def _encoding(ds: xr.Dataset, chunker=None) -> dict:
+    chunker = chunker or default_chunker(ds)
     comp = numcodecs.Blosc(cname=COMPRESSION["cname"], clevel=COMPRESSION["clevel"], shuffle=numcodecs.Blosc.SHUFFLE)
     enc: dict = {}
-    kind = ds.attrs["dataset_type"]
     for n, v in ds.variables.items():
-        e = {"chunks": chunks_for(kind, v.dims, v.shape, v.dtype.itemsize), "compressors": (comp,)}
+        e = {"chunks": chunker(n, v.dims, v.shape, v.dtype.itemsize), "compressors": (comp,)}
         if v.dtype.kind == "M":
             e.update(dtype="int64", units="nanoseconds since 1970-01-01", _FillValue=-9223372036854775808)
         enc[n] = e
     return enc
 
 
-def write_local(ds: xr.Dataset, root: Path) -> Path:
+def write_local(ds: xr.Dataset, root: Path, chunker=None) -> Path:
     path = root / "store.zarr"
-    ds.to_zarr(path, mode="w", zarr_format=ZARR_FORMAT, consolidated=True, encoding=_encoding(ds))
+    ds.to_zarr(path, mode="w", zarr_format=ZARR_FORMAT, consolidated=True, encoding=_encoding(ds, chunker))
     return path
 
 
@@ -82,13 +87,19 @@ def _sha(path: Path) -> tuple[str, int]:
 
 def publish_zarr(ds: xr.Dataset, *, s3: S3Store, bucket: str, platform_type: str, dataset_key: str) -> PublishResult:
     """ds is the final dataset (see build.for_zarr). Raises PublishError; never leaves a half-written final prefix."""
-    final = store_prefix(platform_type, dataset_key)
+    return write_zarr_safe(ds, s3=s3, bucket=bucket, final=store_prefix(platform_type, dataset_key))
+
+
+def write_zarr_safe(ds: xr.Dataset, *, s3: S3Store, bucket: str, final: str, chunker=None) -> PublishResult:
+    """The safe write used for standardised datasets (Phase 3) and derived products (Phase 4).
+
+    `final` is the prefix inside `bucket`; `chunker(name, dims, shape, itemsize)` gives the chunk shape of one array."""
     tmp_prefix = f".tmp/{uuid.uuid4().hex}/{final}"
     work = Path(tempfile.mkdtemp(prefix="scats_zarr_"))
     committed: list[str] = []
     stage = "build"
     try:
-        local = write_local(ds, work)
+        local = write_local(ds, work, chunker)
         stage = "verify_local"
         back = read_local(local)
         diff = datasets_equal(ds, back)

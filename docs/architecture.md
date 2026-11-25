@@ -82,8 +82,8 @@ Reading the diagram:
 | Automated QC and flag history | Yes (Phase 2) | Instrument-specific tests for NPOL sensors |
 | Expert review with audit trail | Yes (Phase 3) | Multi-step approval workflows |
 | Three-zone Zarr store | Yes (Phase 3) | Tiered or archival storage |
-| Derived products (T-S, sections, MLD, OHC, sound speed, climatologies) | Yes (Phase 4) | Full acoustic propagation modelling |
-| Data Access API | Yes (Phase 4) | OGC web services (WMS/WCS/SensorThings) |
+| Derived products | Yes (Phase 4): binned profiles, hourly/daily series, monthly SST. T-S, sections, MLD, OHC, sound speed, climatologies are not built | Full acoustic propagation modelling |
+| Data Access API | Yes (Phase 4): discovery, subset, download, limits, query log | OGC web services (WMS/WCS/SensorThings) |
 | Dashboard (profile, section, map, explore) | Yes (Phase 5) | Collaborative features |
 | Machine learning, forecasting, advanced analytics | No | Extension points only |
 | Secure sharing with external stakeholders | Roles only | Federated login, fine-grained sharing |
@@ -107,6 +107,18 @@ QC flags are kept in two places that must agree:
 * `scats_ingest.verify_flag_consistency()` recomputes the expected rows from the staging file and reports every difference. It runs after every ingest. Details and reasoning: `docs/phase2_design.md` section 3.
 
 Phase 3 decisions: a flag only changes by adding a row; a person's row beats any automatic row (`qc_flag_current`); when a QC re-run no longer flags a cell a "cleared" automatic row is added, and a person's decision still wins. Zarr layout: see `docs/phase3_design.md`.
+
+## 5a. Phase 4: products and access (as built)
+
+```
+standardised zone (published datasets only) --read_store--> 06 products pipeline --write_zarr_safe--> derived zone  derived/<kind>/<dataset_key>/v<N>.zarr
+        catalogue: dataset, dataset_store ----------------------------------------> derived_product (lineage, versions, stale)
+        views catalogue_dataset / catalogue_product ---> 07 access API (role scats_access) --lazy read--> standardised / derived
+                                                                         \--> query_log (same transaction as the catalogue read)
+```
+* The pipeline reads published datasets only, uses flags 1 and 2 only, interpolates nothing, and records a lineage (source manifest, review version, QC config version and checksum, code and config checksums, flags used). A product is stale when its source leaves `published` or changes (trigger plus view).
+* The API has one policy table (method, path) to role; an unlisted route is 403. Limits per role are rows in `api_limit` with hard maxima. Two database roles: `scats_products` (build) and `scats_access` (read views, write `query_log`).
+* Stand-ins used for testing: PostgreSQL 16 without PostGIS (bbox search is plain latitude/longitude comparison; PostGIS would use `ST_Intersects`) and moto for S3. Docker, SeaweedFS and PostGIS are not verified. Details: `docs/phase4_design.md`.
 
 ## 6. What Phase 1 delivered from this design
 
