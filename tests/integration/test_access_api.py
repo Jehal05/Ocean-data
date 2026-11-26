@@ -670,3 +670,25 @@ def test_zarr_listing(world):
     assert r["n_objects"] == len(r["objects"]) and all(set(o) == {"path", "size", "sha256"} for o in r["objects"]) and r["zarr_format"] == 2
     assert r["manifest_sha256"] == get(world, f"/products/sst_monthly_mean__{SST}").json()["manifest_sha256"] and any(o["path"] == ".zmetadata" for o in r["objects"])
     assert "store_uri" in get(world, f"/datasets/{SST}/zarr").json() or get(world, f"/datasets/{SST}/zarr").json()["uri"].startswith("s3://standardised/")
+
+
+# ================================================================== Phase 5 additions ==
+def test_health_has_only_booleans_and_names_no_account(world):
+    j = world.client.get("/health").json()
+    assert set(j) == {"status", "service", "version", "database", "storage", "default_passwords"}
+    assert j["default_passwords"] in (True, False, None)
+    for name in ("admin", "reviewer", "viewer"):
+        assert name not in world.client.get("/health").text.replace("scats-data-access-api", "")
+
+
+def test_the_extra_security_headers_and_the_public_dashboard_routes(world):
+    for r in (world.client.get("/health"), get(world, "/datasets")):
+        assert r.headers["x-frame-options"] == "DENY" and r.headers["cross-origin-resource-policy"] == "same-origin"
+        assert "camera=()" in r.headers["permissions-policy"]
+    page = world.client.get("/app")
+    assert page.status_code == 200 and "script-src 'self'" in page.headers["content-security-policy"] and page.headers["cache-control"] == "no-store"
+    assert world.client.get("/app/app.js").status_code == 200
+    for bad in ("/app/package.json", "/app/..%2f..%2fmain.py", "/app/nothing.js"):
+        assert world.client.get(bad).status_code in (403, 404), bad
+    root = world.client.get("/", follow_redirects=False)
+    assert root.status_code in (302, 307) and root.headers["location"] == "/app"

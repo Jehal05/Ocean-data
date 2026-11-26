@@ -120,6 +120,16 @@ standardised zone (published datasets only) --read_store--> 06 products pipeline
 * The API has one policy table (method, path) to role; an unlisted route is 403. Limits per role are rows in `api_limit` with hard maxima. Two database roles: `scats_products` (build) and `scats_access` (read views, write `query_log`).
 * Stand-ins used for testing: PostgreSQL 16 without PostGIS (bbox search is plain latitude/longitude comparison; PostGIS would use `ST_Intersects`) and moto for S3. Docker, SeaweedFS and PostGIS are not verified. Details: `docs/phase4_design.md`.
 
+## 5b. Phase 5: dashboard (as built)
+
+```
+browser --GET /app, /app/{file} (public, fixed list, page CSP)--> 07 access API --> static files of 08 (no build)
+browser --fetch same origin, HttpOnly cookie + X-Requested-With--> the Phase 4 endpoints (datasets, products, subset, download, limits, health)
+```
+* One origin, so no CORS. No third-party JavaScript or CDN. Every API string is inserted as text. CSP: `default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; frame-ancestors 'none'`.
+* Additive API changes only: `/app` routes, `/` redirect, `default_passwords` boolean in `/health`, three extra response headers. No existing behaviour changed.
+* Not drawn: coastline, tiles, zoom, sections, T-S diagrams (see `docs/phase5_design.md`, section 8).
+
 ## 6. What Phase 1 delivered from this design
 
 Compose stack (database, object storage, API skeleton), the database schema with a limited API role, the three buckets, the data model specification, sample data and an error-injected test set. Components 2 to 8 exist as empty folders with a README stating what comes in which phase.

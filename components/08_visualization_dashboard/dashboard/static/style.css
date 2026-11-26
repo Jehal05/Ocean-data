@@ -1,0 +1,52 @@
+:root { --fg: #14212b; --bg: #fbfcfd; --line: #c5d0d8; --accent: #0b5c8a; --warn: #8a4b00; --bad: #a11d1d; --band: #9fc6dd; }
+* { box-sizing: border-box; }
+body { margin: 0; font: 15px/1.45 system-ui, sans-serif; color: var(--fg); background: var(--bg); }
+header { display: flex; flex-wrap: wrap; gap: 12px 24px; align-items: center; padding: 8px 20px; border-bottom: 1px solid var(--line); background: #eef3f6; }
+h1 { font-size: 18px; margin: 0; }
+h2 { font-size: 20px; margin: 4px 0 12px; }
+h3 { font-size: 16px; }
+main { padding: 12px 20px 24px; max-width: 1100px; margin: 0 auto; }
+footer { padding: 10px 20px; border-top: 1px solid var(--line); font-size: 13px; color: #43525d; }
+footer p { margin: 2px 0; }
+#synthetic { font-weight: 600; color: var(--warn); }
+nav { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
+nav a { color: var(--accent); padding: 2px 4px; }
+nav a[aria-current="page"] { font-weight: 700; border-bottom: 2px solid var(--accent); text-decoration: none; }
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focus-visible { outline: 3px solid #e08a00; outline-offset: 2px; }
+.skip { position: absolute; left: -999px; top: 0; background: #fff; padding: 6px; }
+.skip:focus { left: 6px; z-index: 5; }
+button { font: inherit; padding: 4px 12px; border: 1px solid var(--accent); background: #fff; color: var(--accent); border-radius: 4px; cursor: pointer; }
+button:hover { background: #e6f1f8; }
+.filters { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: end; margin: 8px 0 14px; }
+.field { display: flex; flex-direction: column; font-size: 13px; gap: 2px; }
+.field input, .field select { font: inherit; padding: 3px 6px; border: 1px solid #7b8d99; border-radius: 3px; min-width: 120px; background: #fff; color: var(--fg); }
+.check { font-size: 13px; }
+.login { display: flex; flex-direction: column; gap: 10px; max-width: 320px; }
+.error { color: var(--bad); font-weight: 600; white-space: pre-wrap; }
+.warning { color: var(--warn); font-weight: 600; border: 1px solid var(--warn); padding: 6px 10px; border-radius: 4px; background: #fff7ea; }
+.notice { color: var(--warn); border-left: 4px solid var(--warn); padding: 4px 10px; background: #fff7ea; margin: 6px 0; }
+.hint, .count { font-size: 13px; color: #43525d; margin: 4px 0; }
+.citation { display: grid; grid-template-columns: max-content 1fr; gap: 2px 12px; font-size: 12px; margin: 6px 0; }
+.citation dt { font-weight: 600; } .citation dd { margin: 0; word-break: break-all; font-family: ui-monospace, monospace; }
+table { border-collapse: collapse; font-size: 12.5px; margin: 8px 0; max-width: 100%; display: block; overflow-x: auto; }
+th, td { border: 1px solid var(--line); padding: 2px 6px; text-align: left; white-space: nowrap; }
+th { background: #eef3f6; } caption { text-align: left; font-weight: 600; padding: 4px 0; }
+.chart { width: 100%; height: auto; max-width: 760px; display: block; }
+.panels { display: flex; flex-wrap: wrap; gap: 8px; } .panels .chart { max-width: 360px; }
+.legend { max-width: 760px; } .counts { max-width: 760px; }
+.grid { stroke: #dde5ea; stroke-width: 1; } .plot { stroke: #5d6e7a; stroke-width: 1; }
+.tick { font-size: 11px; fill: #33444f; } .label { font-size: 12px; fill: var(--fg); }
+.line { fill: none; stroke: var(--accent); stroke-width: 1.6; }
+.band { fill: var(--band); fill-opacity: 0.6; stroke: none; }
+.bar { fill: #5d6e7a; }
+.mk { fill: var(--accent); stroke: #fff; stroke-width: 0.8; }
+.mk.ring, .mk.cross { fill: none; stroke: #33444f; stroke-width: 1.6; }
+.mk.flag3 { fill: #c97a00; } .mk.flag4 { stroke: var(--bad); } .mk.flag2 { fill: #3b8a5a; }
+.fprect { fill: rgba(11, 92, 138, 0.18); stroke: var(--accent); stroke-width: 1.5; }
+.fpmark { fill: var(--accent); stroke: #fff; }
+.fp:focus-visible .fprect, .fp:hover .fprect { fill: rgba(224, 138, 0, 0.3); }
+.bbox { fill: none; stroke: #c97a00; stroke-width: 1.5; stroke-dasharray: 5 3; }
+.cell { stroke: none; } .cell.empty { stroke: #7b8d99; stroke-dasharray: 2 2; fill: none; }
+.buttons { display: flex; gap: 10px; flex-wrap: wrap; }
+.limits { margin-top: 14px; font-size: 13px; }
+[hidden] { display: none !important; }

@@ -117,6 +117,18 @@ Every answer carries `data_version`, `product_version`, `qc_config_sha256` and t
 
 Checks: `python3 tests/check_phase4.py` (runs the new suites, `tests/mutation_check_phase4.py`, `tests/check_phase3.py` and ruff; output in `reports/phase4_check.json` and `reports/phase4_mutation_check.md`).
 
+## Phase 5: browser dashboard, hardening, demo
+
+Branch `phase-5-dashboard`. Design and "as built": `docs/phase5_design.md`. Guide: `docs/user_guide.md`. Demo: `docs/demo_script.md`.
+
+**Run:** the access API serves the dashboard at `/app` (`docker compose up`, then http://127.0.0.1:8000/app). Without Docker: `python3 tests/dash_stack.py` loads the five synthetic files through the review flow, builds the products and serves everything.
+
+Five views on the Phase 4 API only (Map, Profile, Series, SST, Explore/download). Plain ES modules, SVG charts, no third-party JavaScript, no CDN, no build step. Every view shows data_version, product_version, qc_config_sha256 and the flags used, says when a page is truncated or a product is stale, and the footer says when the data is synthetic. No coastline or tiles are drawn (none is licensed in the repo; the map is a graticule).
+
+**Check:** `python3 tests/check_phase5.py` (Node tests, static rules, browser tests in headless Chrome, mutation check, Phase 1-4 regression, lint). Screenshots are in `docs/screens/`.
+
+**Stand-ins:** PostgreSQL 16 without PostGIS and moto instead of SeaweedFS. Docker was not built or run. Browser tested: headless Chrome for Testing 153 via Playwright only.
+
 ## What has and has not been verified
 
 The Docker stack has **not yet been started end to end** by the author (no Docker daemon was available while building). Tested separately: the database schema and roles (on PostgreSQL 16 with PostGIS replaced by plain types), the API and upload script (against an S3 emulator), the data scripts and the answer key. Untested: the PostGIS-specific SQL, the SeaweedFS service settings, `fetch_public_data.py`. Run `docker compose up --build -d` and then `python tests/check_phase1.py`; fix anything it reports.

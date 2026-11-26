@@ -1,0 +1,1 @@
+{"name": "scats-dashboard", "private": true, "type": "module", "description": "Plain ES modules, no dependencies. Not served; only lets Node run the unit tests."}

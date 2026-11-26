@@ -7,12 +7,13 @@ from __future__ import annotations
 
 import logging
 import os
+from pathlib import Path
 
 import boto3
 import psycopg2
 from botocore.client import Config
 from fastapi import Depends, FastAPI, HTTPException, Request, Response
-from fastapi.responses import JSONResponse
+from fastapi.responses import FileResponse, JSONResponse, RedirectResponse
 from pydantic import BaseModel, Field
 
 import scats_auth as auth
@@ -24,7 +25,14 @@ from .filters import Refused
 from .policy import ROLE_MATRIX, SEED_WARNING, settings
 
 log = logging.getLogger("scats.access")
-VERSION = "0.2.0-phase4"
+VERSION = "0.3.0-phase5"
+# The dashboard (component 08) is plain files served from here. Only the names in DASHBOARD_FILES are ever served.
+DASHBOARD_DIR = Path(os.getenv("DASHBOARD_DIR") or Path(__file__).resolve().parents[2] / "08_visualization_dashboard" / "dashboard" / "static")
+DASHBOARD_FILES = {"index.html": "text/html; charset=utf-8", "style.css": "text/css; charset=utf-8", "app.js": "text/javascript; charset=utf-8",
+                   "logic.js": "text/javascript; charset=utf-8", "api.js": "text/javascript; charset=utf-8", "svg.js": "text/javascript; charset=utf-8",
+                   "views.js": "text/javascript; charset=utf-8"}
+PAGE_CSP = ("default-src 'none'; script-src 'self'; style-src 'self'; img-src 'self' data:; connect-src 'self'; "
+            "frame-ancestors 'none'; base-uri 'none'; form-action 'self'")
 
 
 def authorise(request: Request):
@@ -65,6 +73,9 @@ async def security_headers(request: Request, call_next):
     resp.headers.setdefault("Referrer-Policy", "no-referrer")
     resp.headers.setdefault("Content-Security-Policy", "default-src 'none'; frame-ancestors 'none'")
     resp.headers.setdefault("Cache-Control", "no-store")
+    resp.headers.setdefault("X-Frame-Options", "DENY")
+    resp.headers.setdefault("Cross-Origin-Resource-Policy", "same-origin")
+    resp.headers.setdefault("Permissions-Policy", "camera=(), microphone=(), geolocation=(), payment=(), usb=(), interest-cohort=()")
     return resp
 
 
@@ -121,11 +132,42 @@ def live() -> dict:
     return {"status": "ok"}
 
 
+def _default_passwords() -> bool | None:
+    """True while any account still has its published seed password. Only the yes/no leaves the server, never the names."""
+    try:
+        return bool(auth.default_password_users(settings()["db_url"]))
+    except Exception:  # noqa: BLE001
+        return None
+
+
 @app.get("/health", tags=["health"])
 def health() -> dict:
     db, storage = check_database(), check_storage()
     return {"status": "ok" if db["ok"] and storage["ok"] else "degraded", "service": "scats-data-access-api", "version": VERSION,
-            "database": {"ok": db["ok"]}, "storage": storage}
+            "database": {"ok": db["ok"]}, "storage": storage, "default_passwords": _default_passwords()}
+
+
+# --------------------------------------------------------------- dashboard --
+
+@app.get("/", include_in_schema=False)
+def root():
+    return RedirectResponse("/app", status_code=307)
+
+
+def _page(name: str) -> FileResponse:
+    if name not in DASHBOARD_FILES or not (DASHBOARD_DIR / name).is_file():
+        raise HTTPException(404, "not found")
+    return FileResponse(DASHBOARD_DIR / name, media_type=DASHBOARD_FILES[name], headers={"Content-Security-Policy": PAGE_CSP})
+
+
+@app.get("/app", include_in_schema=False)
+def dashboard():
+    return _page("index.html")
+
+
+@app.get("/app/{name}", include_in_schema=False)
+def dashboard_file(name: str):
+    return _page(name)
 
 
 @app.get("/health/audit", tags=["health"])

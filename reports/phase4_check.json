@@ -2,7 +2,7 @@
  {
   "check": "role matrix has a row for every route and no row without a route",
   "status": "PASS",
-  "evidence": "19 routes, 19 rows; missing []; extra []"
+  "evidence": "22 routes, 22 rows; missing []; extra []"
  },
  {
   "check": "docs and openapi are off",
@@ -22,7 +22,7 @@
  {
   "check": "migrations 001-006, the review API and QC are unchanged since Phase 3 (007 is additive)",
   "status": "PASS",
-  "evidence": "changed: []; db/init status: ['db/init/007_products_access.sql']"
+  "evidence": "changed: ['db/init/007_products_access.sql']; db/init status: []"
  },
  {
   "check": "products: hand-computed values, good-flag filter (unit)",
@@ -132,7 +132,7 @@
  {
   "check": "access API: whole file",
   "status": "PASS",
-  "evidence": "...............                                                          [100%]"
+  "evidence": ".................                                                        [100%]"
  },
  {
   "check": "mutation check: every safeguard switched off is noticed",

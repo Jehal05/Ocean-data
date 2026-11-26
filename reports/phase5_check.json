@@ -1,0 +1,57 @@
+[
+ {
+  "check": "qc_config.yaml unchanged since Phase 2",
+  "status": "PASS",
+  "evidence": "225bc3afe0a0ff0beddd693b22c7b23c2d4994c3bc1f3ebf2ba5268a1c9130f3"
+ },
+ {
+  "check": "migrations 001-007 unchanged",
+  "status": "PASS",
+  "evidence": "changed: []; status: "
+ },
+ {
+  "check": "no vendored library, no CDN or other host in any served file",
+  "status": "PASS",
+  "evidence": "files ['api.js', 'app.js', 'index.html', 'logic.js', 'package.json', 'style.css', 'svg.js', 'views.js']; hosts in []; unexpected []"
+ },
+ {
+  "check": "dashboard logic (Node, hand-computed values)",
+  "status": "PASS",
+  "evidence": "# duration_ms 123.316266"
+ },
+ {
+  "check": "static rules: no innerHTML/eval/inline script or style/CDN",
+  "status": "PASS",
+  "evidence": "......                                                                   [100%]"
+ },
+ {
+  "check": "browser tests: login, views, notices, hostile text, CSP, CSRF, a11y (headless Chrome, real stack)",
+  "status": "PASS",
+  "evidence": ".................................                                        [100%]"
+ },
+ {
+  "check": "mutation check: every dashboard safeguard switched off is noticed",
+  "status": "PASS",
+  "evidence": "exit 0; see reports/phase5_mutation_check.md"
+ },
+ {
+  "check": "Phase 1-4 regression (check_phase4.py)",
+  "status": "PASS",
+  "evidence": "exit 2: 32 checks: 0 FAIL, 1 SKIP"
+ },
+ {
+  "check": "lint (ruff F,E9)",
+  "status": "PASS",
+  "evidence": "All checks passed!"
+ },
+ {
+  "check": "docker compose file is valid",
+  "status": "PASS",
+  "evidence": "ok"
+ },
+ {
+  "check": "Docker images / compose stack run",
+  "status": "SKIP",
+  "evidence": "no Docker daemon: images not built, healthcheck not run"
+ }
+]

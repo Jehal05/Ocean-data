@@ -70,7 +70,7 @@ def main() -> int:
     st = subprocess.run(["git", "status", "--porcelain", "db/init"], capture_output=True, text=True, cwd=ROOT).stdout
     changed = [ln for ln in r.stdout.split() if ln]
     added = [ln[3:] for ln in st.splitlines()]
-    ok = r.returncode == 0 and not changed and all(a.endswith("007_products_access.sql") for a in added)
+    ok = r.returncode == 0 and all(c.endswith("007_products_access.sql") for c in changed) and all(a.endswith("007_products_access.sql") for a in added)   # 007 is the only addition; once committed it shows as "changed" since Phase 3
     rec("migrations 001-006, the review API and QC are unchanged since Phase 3 (007 is additive)", "PASS" if ok else "FAIL", f"changed: {changed}; db/init status: {added}")
     # ---- unit tests (no database) --------------------------------------------------------------------------------
     pytest_check("products: hand-computed values, good-flag filter (unit)", [U + "test_products.py"])

@@ -8,6 +8,9 @@ ROLE_MATRIX: dict[tuple[str, str], str | None] = {
     ("GET", "/health/live"): None,
     ("GET", "/health"): None,                    # Phase 1 contract: booleans only, no names, no error text
     ("GET", "/health/audit"): "admin",
+    ("GET", "/"): None,                          # Phase 5: redirects to the dashboard
+    ("GET", "/app"): None,                       # Phase 5: the dashboard page and its fixed list of files (no data behind them)
+    ("GET", "/app/{name}"): None,
     ("POST", "/auth/login"): None,
     ("POST", "/auth/logout"): "viewer",
     ("GET", "/auth/me"): "viewer",

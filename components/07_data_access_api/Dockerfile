@@ -16,6 +16,8 @@ COPY components/05_data_store ./components/05_data_store
 COPY components/02_parser_api ./components/02_parser_api
 COPY components/03_qc_framework ./components/03_qc_framework
 COPY components/07_data_access_api ./components/07_data_access_api
+# the browser dashboard (static files) is served by this API at /app
+COPY components/08_visualization_dashboard ./components/08_visualization_dashboard
 
 RUN useradd --no-create-home --uid 10003 scats
 USER scats
