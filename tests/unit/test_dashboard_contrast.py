@@ -120,3 +120,18 @@ def test_the_check_can_fail_the_colours_it_replaced_were_below_the_limit():
     old_band = over(value(".band", "fill"), PAGE, alpha=float(RULES[".band"]["fill-opacity"]))
     assert ratio(old_band, rgba(PAGE)) < 3.0                                # the band with no outline before the fix: 1.38:1
     assert value(".band", "stroke") != "none"
+
+
+LOGIC = (Path(__file__).resolve().parents[2] / "components/08_visualization_dashboard/dashboard/static/logic.js").read_text()
+STOPS = [tuple(int(n) for n in m.split(",")) for m in re.findall(r"\[(\d+, \d+, \d+)\]", re.search(r"const STOPS = (.*?);", LOGIC).group(1))]
+
+
+def test_every_end_of_the_sst_colour_scale_is_seen_against_the_page():
+    """The pale stops of the scale are below 3:1 on their own (viridis yellow is 1.23:1). Each cell therefore has an outline that is at
+    least 3:1, and the colour bar has a frame that is. The numbers are also in the table under the chart."""
+    assert len(STOPS) == 5
+    assert min(ratio(c, rgba(PAGE)) for c in STOPS) < 3.0                                  # the problem this answers is real: fill alone is not enough
+    outline = value(".cell", "stroke")
+    assert outline != "none" and ratio(rgba(outline), rgba(PAGE)) >= 3.0, outline
+    assert float(RULES[".cell"]["stroke-width"]) > 0
+    assert ratio(rgba(value(".plot", "stroke")), rgba(PAGE)) >= 3.0

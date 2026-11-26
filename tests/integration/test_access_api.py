@@ -1,5 +1,6 @@
 """The data access API end to end: stand-in PostgreSQL, moto, real review flow for the published datasets, products built by the pipeline."""
 import io
+import json
 import os
 import time
 from types import SimpleNamespace
@@ -696,6 +697,10 @@ def test_only_a_loopback_caller_is_told_about_default_passwords_and_a_forwarded_
         assert _client_at(world, host).get("/health").json()["default_passwords"] is None, host
     spoof = _client_at(world, "203.0.113.9").get("/health", headers={"X-Forwarded-For": "127.0.0.1", "X-Real-IP": "127.0.0.1", "Forwarded": "for=127.0.0.1"})
     assert spoof.json()["default_passwords"] is None
+    loop = _client_at(world, "127.0.0.1")
+    for h in ({"X-Forwarded-For": "198.51.100.7"}, {"X-Forwarded-Proto": "https"}, {"Forwarded": "for=198.51.100.7"}, {"X-Real-IP": "198.51.100.7"}, {"x-forwarded-host": "scats.example"}):
+        assert loop.get("/health", headers=h).json()["default_passwords"] is None, h          # a proxy on this host relays strangers: not the console
+    assert loop.get("/health").json()["default_passwords"] is True
 
 
 def test_default_password_answer_is_cached_and_a_failure_is_not(world, monkeypatch):
@@ -738,3 +743,29 @@ def test_the_extra_security_headers_and_the_public_dashboard_routes(world):
         assert world.client.get(bad).status_code in (403, 404), bad
     root = world.client.get("/", follow_redirects=False)
     assert root.status_code in (302, 307) and root.headers["location"] == "/app"
+
+
+def test_a_footprint_that_crosses_180_is_found_by_every_box_that_overlaps_it(world):
+    """Catalogue footprint west 178, east -178 (CF: min > max): the two plain pieces [178,180] and [-180,-178]."""
+    original = (170.0, 175.0)
+    A.sql("UPDATE dataset SET attributes = attributes || '{\"geospatial_lon_min\": 178.0, \"geospatial_lon_max\": -178.0}'::jsonb WHERE dataset_key = 'wrap'", fetch=False)
+    try:
+        def found(box):
+            return "wrap" in keys(get(world, "/datasets", bbox=box))
+        hits = ["-180,0,180,20", "179,0,180,20", "-180,0,-178,20", "177,0,-177,20", "178,0,178.5,20", "-178.5,0,-178,20", "100,0,-179,20", "-179,0,100,20", "170,0,179,20", "-179,0,-170,20"]
+        misses = ["170,0,175,20", "100,0,177,20", "-177,0,-100,20", "0,0,10,20", "-170,0,-160,20", "60,0,75,20"]
+        assert [b for b in hits if not found(b)] == [], "boxes that overlap the footprint but were not returned"
+        assert [b for b in misses if found(b)] == [], "boxes that do not overlap it but were returned"
+        assert "wrap" not in keys(get(world, "/datasets", bbox="170,0,175,20", dataset_type="grid"))        # the other filters still combine
+        assert "wrap" in keys(get(world, "/datasets", bbox="179,0,180,20", dataset_type="grid"))
+    finally:
+        A.sql("UPDATE dataset SET attributes = attributes || %s::jsonb WHERE dataset_key = 'wrap'", (json.dumps({"geospatial_lon_min": original[0], "geospatial_lon_max": original[1]}),), fetch=False)
+    assert "wrap" in keys(get(world, "/datasets", bbox="171,0,174,20")) and "wrap" not in keys(get(world, "/datasets", bbox="179,0,180,20"))     # restored
+
+
+def test_a_plain_footprint_is_found_by_a_box_that_crosses_180_exactly_as_before(world):
+    both = keys(get(world, "/datasets", bbox="60,0,-170,30"))
+    assert {BUOY, SST, "wrap"} <= both                                                                 # [60,180] holds the Arabian Sea data and 170-175
+    east = keys(get(world, "/datasets", bbox="100,0,-170,30"))
+    assert "wrap" in east and not ({BUOY, SST} & east)                                                  # 100 and up: only the data near 170-175
+    assert not ({BUOY, SST, "wrap", ARGO} & keys(get(world, "/datasets", bbox="-170,0,-100,30")))        # none of these is in the western hemisphere

@@ -57,8 +57,7 @@ MUTATIONS = [
 
     ("/health: only a loopback caller is told about default passwords", f"{ACC}/main.py", "    if not _is_loopback(request):\n        return None\n", "",
      [f"{API}::test_only_a_loopback_caller_is_told_about_default_passwords_and_a_forwarded_header_changes_nothing"]),
-    ("/health: the peer address is read from the connection, not a forwarded header", f"{ACC}/main.py", '    host = request.client.host if request.client else ""\n    return host in',
-     '    host = request.headers.get("x-forwarded-for") or (request.client.host if request.client else "")\n    return host in',
+    ("/health: a relayed request (forwarding header) is not the console", f"{ACC}/main.py", '    return not any(k.startswith("x-forwarded-") or k in ("forwarded", "x-real-ip") for k in (h.lower() for h in request.headers))', "    return True",
      [f"{API}::test_only_a_loopback_caller_is_told_about_default_passwords_and_a_forwarded_header_changes_nothing"]),
     ("/health: the default-password answer is cached", f"{ACC}/main.py", '    if _dp_cache["at"] is not None and now - _dp_cache["at"] < DEFAULT_PASSWORDS_CACHE_S:\n        return _dp_cache["value"]\n', "",
      [f"{API}::test_default_password_answer_is_cached_and_a_failure_is_not"]),
@@ -82,6 +81,13 @@ MUTATIONS = [
      [f"{B}::test_axe_core_finds_no_wcag_a_or_aa_violation_in_any_view"]),
     ("test helper `until` fails on a real page error", B, "            if not any(m in str(e) for m in BETWEEN_PAGES):\n", "            if False:\n",
      [f"{B}::test_until_retries_a_navigation_but_nothing_else", f"{B}::test_until_fails_at_once_on_a_real_page_that_throws"]),
+    ("a footprint that crosses 180 is matched by an overlapping box", f"{ACC}/service.py", "(lon_min > lon_max AND (lon_min <= %s OR lon_max >= %s))", "(lon_min > lon_max AND (lon_min <= %s AND lon_max >= %s))",
+     [f"{API}::test_a_footprint_that_crosses_180_is_found_by_every_box_that_overlaps_it"]),
+    ("a plain footprint is matched by a box that crosses 180", f"{ACC}/service.py", "pieces = [(b.west, b.east)] if b.west <= b.east else [(b.west, 180.0), (-180.0, b.east)]", "pieces = [(b.west, b.east)]",
+     [f"{API}::test_a_plain_footprint_is_found_by_a_box_that_crosses_180_exactly_as_before"]),
+    ("SST cells have an outline", f"{S}/style.css", ".cell { stroke: #5d6e7a; stroke-width: 0.4; }", ".cell { stroke: none; }", [f"{CONTRAST}::test_every_end_of_the_sst_colour_scale_is_seen_against_the_page"]),
+    ("SST colour bar has a frame", f"{S}/views.js", 'svg.append(s("rect", { class: "plot", x: 64, y: 4, width: 600, height: 14, fill: "none" }));', "void 0;",
+     [f"{B}::test_sst_stops_at_the_row_cap_says_so_and_asks_for_no_more_pages"]),
 ]
 
 

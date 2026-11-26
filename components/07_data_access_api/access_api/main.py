@@ -142,9 +142,13 @@ def _reset_default_password_cache() -> None:
 
 
 def _is_loopback(request: Request) -> bool:
-    """True when the TCP peer is this machine. Read from the connection only, never from a forwarded header."""
+    """True only when the TCP peer is this machine AND the request was not relayed.
+    The peer is read from the connection, never from a header. A reverse proxy on the same host also connects from loopback, so a
+    request that carries any forwarding header (X-Forwarded-*, Forwarded, X-Real-IP) is treated as coming from outside."""
     host = request.client.host if request.client else ""
-    return host in ("127.0.0.1", "::1")
+    if host not in ("127.0.0.1", "::1"):
+        return False
+    return not any(k.startswith("x-forwarded-") or k in ("forwarded", "x-real-ip") for k in (h.lower() for h in request.headers))
 
 
 def _default_passwords(request: Request) -> bool | None:

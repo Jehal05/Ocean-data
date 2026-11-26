@@ -18,7 +18,7 @@ One dashboard safeguard is switched off at a time; the guarding tests must then 
 | products are asked without the quality parameter | yes | tests/integration/test_dashboard_browser.py::test_a_stale_product_is_refused_with_the_reason_and_shown_with_a_notice_when_asked |
 | only the newest request draws (map) | yes | tests/integration/test_dashboard_browser.py::test_an_older_answer_arriving_late_never_overwrites_the_newer_one |
 | /health: only a loopback caller is told about default passwords | yes | tests/integration/test_access_api.py::test_only_a_loopback_caller_is_told_about_default_passwords_and_a_forwarded_header_changes_nothing |
-| /health: the peer address is read from the connection, not a forwarded header | yes | tests/integration/test_access_api.py::test_only_a_loopback_caller_is_told_about_default_passwords_and_a_forwarded_header_changes_nothing |
+| /health: a relayed request (forwarding header) is not the console | yes | tests/integration/test_access_api.py::test_only_a_loopback_caller_is_told_about_default_passwords_and_a_forwarded_header_changes_nothing |
 | /health: the default-password answer is cached | yes | tests/integration/test_access_api.py::test_default_password_answer_is_cached_and_a_failure_is_not |
 | /health: a failed lookup is not cached | yes | tests/integration/test_access_api.py::test_default_password_answer_is_cached_and_a_failure_is_not |
 | login page shows no warning unless the server says true | yes | tests/integration/test_dashboard_browser.py::test_login_page_shows_no_password_warning_when_the_server_says_null_or_false |
@@ -31,3 +31,7 @@ One dashboard safeguard is switched off at a time; the guarding tests must then 
 | band outline | yes | tests/unit/test_dashboard_contrast.py::test_the_check_can_fail_the_colours_it_replaced_were_below_the_limit |
 | link target size in the map table (axe) | yes | tests/integration/test_dashboard_browser.py::test_axe_core_finds_no_wcag_a_or_aa_violation_in_any_view |
 | test helper `until` fails on a real page error | yes | tests/integration/test_dashboard_browser.py::test_until_retries_a_navigation_but_nothing_else |
+| a footprint that crosses 180 is matched by an overlapping box | yes | tests/integration/test_access_api.py::test_a_footprint_that_crosses_180_is_found_by_every_box_that_overlaps_it |
+| a plain footprint is matched by a box that crosses 180 | yes | tests/integration/test_access_api.py::test_a_plain_footprint_is_found_by_a_box_that_crosses_180_exactly_as_before |
+| SST cells have an outline | yes | tests/unit/test_dashboard_contrast.py::test_every_end_of_the_sst_colour_scale_is_seen_against_the_page |
+| SST colour bar has a frame | yes | tests/integration/test_dashboard_browser.py::test_sst_stops_at_the_row_cap_says_so_and_asks_for_no_more_pages |

@@ -46,7 +46,7 @@ th { background: #eef3f6; } caption { text-align: left; font-weight: 600; paddin
 .fpmark { fill: var(--accent); stroke: #fff; }
 .fp:focus-visible .fprect, .fp:hover .fprect { fill: rgba(224, 138, 0, 0.3); }
 .bbox { fill: none; stroke: #c97a00; stroke-width: 1.5; stroke-dasharray: 5 3; }
-.cell { stroke: none; } .cell.empty { stroke: #7b8d99; stroke-dasharray: 2 2; fill: none; }
+.cell { stroke: #5d6e7a; stroke-width: 0.4; } .cell.empty { stroke: #7b8d99; stroke-dasharray: 2 2; fill: none; }
 .buttons { display: flex; gap: 10px; flex-wrap: wrap; }
 .limits { margin-top: 14px; font-size: 13px; }
 [hidden] { display: none !important; }

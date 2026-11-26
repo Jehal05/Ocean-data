@@ -147,7 +147,7 @@
    ]
   },
   {
-   "mutation": "/health: the peer address is read from the connection, not a forwarded header",
+   "mutation": "/health: a relayed request (forwarding header) is not the console",
    "file": "components/07_data_access_api/access_api/main.py",
    "baseline_passes": true,
    "caught": true,
@@ -275,6 +275,46 @@
    "guarding_tests": [
     "tests/integration/test_dashboard_browser.py::test_until_retries_a_navigation_but_nothing_else",
     "tests/integration/test_dashboard_browser.py::test_until_fails_at_once_on_a_real_page_that_throws"
+   ]
+  },
+  {
+   "mutation": "a footprint that crosses 180 is matched by an overlapping box",
+   "file": "components/07_data_access_api/access_api/service.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_access_api.py::test_a_footprint_that_crosses_180_is_found_by_every_box_that_overlaps_it",
+   "guarding_tests": [
+    "tests/integration/test_access_api.py::test_a_footprint_that_crosses_180_is_found_by_every_box_that_overlaps_it"
+   ]
+  },
+  {
+   "mutation": "a plain footprint is matched by a box that crosses 180",
+   "file": "components/07_data_access_api/access_api/service.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_access_api.py::test_a_plain_footprint_is_found_by_a_box_that_crosses_180_exactly_as_before",
+   "guarding_tests": [
+    "tests/integration/test_access_api.py::test_a_plain_footprint_is_found_by_a_box_that_crosses_180_exactly_as_before"
+   ]
+  },
+  {
+   "mutation": "SST cells have an outline",
+   "file": "components/08_visualization_dashboard/dashboard/static/style.css",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/unit/test_dashboard_contrast.py::test_every_end_of_the_sst_colour_scale_is_seen_against_the_page",
+   "guarding_tests": [
+    "tests/unit/test_dashboard_contrast.py::test_every_end_of_the_sst_colour_scale_is_seen_against_the_page"
+   ]
+  },
+  {
+   "mutation": "SST colour bar has a frame",
+   "file": "components/08_visualization_dashboard/dashboard/static/views.js",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_dashboard_browser.py::test_sst_stops_at_the_row_cap_says_so_and_asks_for_no_more_pages",
+   "guarding_tests": [
+    "tests/integration/test_dashboard_browser.py::test_sst_stops_at_the_row_cap_says_so_and_asks_for_no_more_pages"
    ]
   }
  ],

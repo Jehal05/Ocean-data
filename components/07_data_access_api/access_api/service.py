@@ -205,11 +205,15 @@ def discover(principal, typ: str, query_params) -> dict:
         where.append("lat_max >= %s AND lat_min <= %s")
         args += [b.south, b.north]
         if not b.full_lon:
-            if b.west <= b.east:
-                where.append("lon_max >= %s AND lon_min <= %s")
-            else:
-                where.append("(lon_max >= %s OR lon_min <= %s)")
-            args += [b.west, b.east]
+            # Longitude ranges live on a circle: the box may cross 180 (west > east) and so may a footprint (lon_min > lon_max).
+            # Cut the box into plain pieces; a plain footprint meets a piece when it overlaps it, a footprint that crosses 180
+            # is the two plain pieces [lon_min,180] and [-180,lon_max], which meet [a,b] when lon_min <= b or lon_max >= a.
+            pieces = [(b.west, b.east)] if b.west <= b.east else [(b.west, 180.0), (-180.0, b.east)]
+            tests = []
+            for a, z in pieces:
+                tests.append("((lon_min <= lon_max AND lon_max >= %s AND lon_min <= %s) OR (lon_min > lon_max AND (lon_min <= %s OR lon_max >= %s)))")
+                args += [a, z, z, a]
+            where.append("(" + " OR ".join(tests) + ")")
     if typ == "product":
         where.append("superseded_at IS NULL")
         if raw.get("include_stale") != "true":

@@ -447,6 +447,7 @@ def test_sst_stops_at_the_row_cap_says_so_and_asks_for_no_more_pages(pg):
     drawn = p.locator("svg.chart rect.cell").count()
     notice = [t for t in p.locator(".result p.notice").all_inner_texts() if t.startswith("Only the first")]
     assert notice == [f"Only the first {drawn} of {total} cells are drawn. Use a smaller box."], notice
+    assert p.locator("svg.chart.bar rect.plot").count() == 1                              # the colour scale has a frame, so its pale end is seen
     assert drawn == -(-2000 // page_size) * page_size and drawn < total               # whole pages up to the cap: 2000 with a page of 200
     assert len(_count_subset_requests(pg, key)) - before == -(-2000 // page_size)      # exactly the pages needed to reach the cap, none after it
 

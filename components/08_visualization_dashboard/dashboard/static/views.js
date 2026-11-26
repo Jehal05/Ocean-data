@@ -385,6 +385,7 @@ function drawGrid(out, rows, r, v) {
 function colourBar([lo, hi], unit) {
   const svg = s("svg", { viewBox: "0 0 760 44", class: "chart bar", role: "img", "aria-label": `Colour scale from ${fmt(lo)} to ${fmt(hi)} ${unit}` });
   for (let i = 0; i < 60; i++) svg.append(s("rect", { x: 64 + i * 10, y: 4, width: 10, height: 14, fill: colour(lo + ((hi - lo) * i) / 59, lo, hi) }));
+  svg.append(s("rect", { class: "plot", x: 64, y: 4, width: 600, height: 14, fill: "none" }));           // a frame, so the pale end of the scale is still seen against the page
   svg.append(s("text", { class: "tick", x: 64, y: 36 }, `${fmt(lo)} ${unit}`), s("text", { class: "tick", x: 664, y: 36, "text-anchor": "end" }, `${fmt(hi)} ${unit}`));
   return svg;
 }

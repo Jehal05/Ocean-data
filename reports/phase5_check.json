@@ -17,7 +17,7 @@
  {
   "check": "dashboard logic (Node, hand-computed values)",
   "status": "PASS",
-  "evidence": "# duration_ms 104.531234"
+  "evidence": "# duration_ms 76.408565"
  },
  {
   "check": "static rules: no innerHTML/eval/inline script or style/CDN, no dead exports or declarations",
@@ -27,7 +27,7 @@
  {
   "check": "WCAG contrast computed from style.css (text 4.5:1, marks and focus 3:1)",
   "status": "PASS",
-  "evidence": "....                                                                     [100%]"
+  "evidence": ".....                                                                    [100%]"
  },
  {
   "check": "axe-core: no WCAG A/AA violation in any view",
