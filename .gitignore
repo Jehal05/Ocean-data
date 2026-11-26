@@ -2,3 +2,6 @@
 __pycache__/
 *.pyc
 .venv/
+
+# test-time tools installed with npm (never committed, never served)
+tests/tools/node_modules/

@@ -110,17 +110,25 @@ def pg(browser):
     p.close()
 
 
+# Only these mean "the page was replaced while we looked": look again. Every other error is a real error and ends the test at once.
+BETWEEN_PAGES = ("Execution context was destroyed", "Cannot find context with specified id", "Inspected target navigated or closed")
+
+
 def until(page, js, timeout=20.0):
-    """Wait until a JavaScript expression is true. (Playwright's wait_for_function uses eval, which the page's own CSP forbids.)"""
+    """Wait until a JavaScript expression is true. (Playwright's wait_for_function uses eval, which the page's own CSP forbids.)
+    A navigation in the middle is retried; any other error (a TypeError in the expression or the page) fails at once with its message."""
     end = time.monotonic() + timeout
+    last = None
     while time.monotonic() < end:
         try:
             if page.evaluate(f"() => Boolean({js})"):
                 return
-        except Exception:                                   # noqa: BLE001 - the page is between two renders; look again
-            pass
+        except Exception as e:  # noqa: BLE001 - classified just below
+            if not any(m in str(e) for m in BETWEEN_PAGES):
+                raise AssertionError(f"the page raised an error while waiting for: {js}\n{e}") from e
+            last = e
         time.sleep(0.1)
-    raise AssertionError(f"timed out waiting for: {js}")
+    raise AssertionError(f"timed out waiting for: {js}" + (f" (last error: {last})" if last else ""))
 
 
 def table_rows(page, selector):
@@ -136,10 +144,21 @@ def test_login_page_warns_about_default_passwords_and_a_wrong_password_is_refuse
     p.fill("#username", "viewer")
     p.fill("#password", "wrong-password")
     p.click("button[type=submit]")
-    until(p, "document.querySelector('.login ~ .error').textContent.length > 0")
+    until(p, "document.querySelector('.login ~ .error')?.textContent.length > 0")
     assert p.inner_text(".login ~ .error").strip() != ""
     assert p.locator("#nav a").count() == 0                                # still not logged in
     assert pg.ctx.cookies() == []                                          # no session cookie was set
+
+
+def test_login_page_shows_no_password_warning_when_the_server_says_null_or_false(pg):
+    p = pg.page
+    for body in ('{"default_passwords": null}', '{"default_passwords": false}'):
+        p.route("**/health", lambda route, _request, b=body: route.fulfill(status=200, content_type="application/json", body=b))
+        p.goto(BASE + "/app")
+        p.wait_for_selector("#username")
+        assert p.locator("#default-passwords").count() == 0, body
+        assert "development passwords" not in p.inner_text("main")
+        p.unroute("**/health")
 
 
 def test_the_session_cookie_is_httponly_samesite_strict_and_not_readable_by_script(pg):
@@ -175,7 +194,7 @@ def test_five_wrong_passwords_lock_the_account_and_the_ui_says_so(pg):
         p.fill("#password", "nope")
         p.click("button[type=submit]")
         p.wait_for_timeout(250)
-    until(p, "document.querySelector('.login ~ .error').textContent.includes('429')")
+    until(p, "document.querySelector('.login ~ .error')?.textContent.includes('429')")
     text = p.inner_text(".login ~ .error")
     assert "Too many requests" in text and "too many failed attempts" in text
 
@@ -194,17 +213,37 @@ def test_map_draws_one_footprint_per_published_dataset_and_none_for_unpublished(
     pg.login()
     p = pg.page
     p.wait_for_selector("#map-count")
-    assert p.inner_text("#map-count") == "7 datasets shown"               # argo, ctd, buoy, sst, bathy, hostile, stale_target; "unpub" is in review
-    assert p.locator("svg.chart g.fp").count() == 7
+    assert p.inner_text("#map-count") == "8 datasets shown"               # argo, ctd, buoy, sst, bathy, hostile, stale_target, antimeridian; "unpub" is in review
+    assert p.locator("svg.chart g.fp").count() == 9                       # the antimeridian grid is drawn in two pieces
     keys = [r[0] for r in table_rows(p, "table.list")]
-    assert sorted(keys) == ["argo_synthetic_arabian_sea_2025q1", "bathymetry_synthetic_0p1deg", "buoy_met_wave_synthetic_2025q1",
+    assert sorted(keys) == ["antimeridian", "argo_synthetic_arabian_sea_2025q1", "bathymetry_synthetic_0p1deg", "buoy_met_wave_synthetic_2025q1",
                             "ctd_casts_synthetic_arabian_sea_2025", "hostile", "sst_synthetic_0p25deg_2025q1", "stale_target"]
     assert "unpub" not in keys and "rejected" not in keys
     p.fill("#platform_type", "argo_float")
     p.click("button[type=submit]")
-    until(p, "document.getElementById('map-count').textContent.startsWith('2 ')")
+    until(p, "document.getElementById('map-count')?.textContent.startsWith('2 ')")
     assert p.locator("svg.chart g.fp").count() == 2
     assert sorted(r[0] for r in table_rows(p, "table.list")) == ["argo_synthetic_arabian_sea_2025q1", "stale_target"]
+
+
+def test_a_footprint_and_a_box_that_cross_180_degrees_are_each_drawn_in_two_pieces(pg):
+    pg.login()
+    p = pg.page
+    p.wait_for_selector("#map-count")
+    pieces = p.locator("svg.chart g.fp[aria-label^='antimeridian:'] rect.fprect")
+    assert pieces.count() == 2                                            # the catalogue says west edge 178, east edge -178: [178,180] and [-180,-178]
+    xs = sorted(float(pieces.nth(i).get_attribute("x")) for i in range(2))
+    widths = [float(pieces.nth(i).get_attribute("width")) for i in range(2)]
+    assert xs[1] - xs[0] > 100 and all(w >= 6 for w in widths)            # one piece at each end of the longitude axis, not one rectangle across the world
+    p.fill("#bbox", "60,0,-170,30")                                       # west > east: a box across 180 (it also meets the Arabian Sea data, so the map is drawn)
+    p.click("button[type=submit]")
+    until(p, "document.querySelectorAll('svg.chart rect.bbox').length > 0")
+    assert p.locator("svg.chart rect.bbox").count() == 2                  # [60,180] and [-180,-170]
+    xs = sorted(float(p.locator("svg.chart rect.bbox").nth(i).get_attribute("x")) for i in range(2))
+    assert xs[0] < xs[1] and p.locator("svg.chart rect.bbox").nth(0).get_attribute("width") != p.locator("svg.chart rect.bbox").nth(1).get_attribute("width")
+    p.fill("#bbox", "60,0,70,30")                                         # an ordinary box: one rectangle
+    p.click("button[type=submit]")
+    until(p, "document.querySelectorAll('svg.chart rect.bbox').length === 1")
 
 
 def test_an_older_answer_arriving_late_never_overwrites_the_newer_one(pg):
@@ -213,12 +252,12 @@ def test_an_older_answer_arriving_late_never_overwrites_the_newer_one(pg):
     p.wait_for_selector("#map-count")
     held = []
     p.route("**/datasets?*", lambda route: held.append(route) if not held else route.continue_())      # the first new request is held back
-    p.click("button[type=submit]")                                                                   # request 1: no filter (7 datasets), held
+    p.click("button[type=submit]")                                                                   # request 1: no filter (8 datasets), held
     while not held:
         p.wait_for_timeout(50)
     p.fill("#platform_type", "argo_float")
     p.click("button[type=submit]")                                                                   # request 2: argo only (2 datasets), answered at once
-    until(p, "document.getElementById('map-count') && document.getElementById('map-count').textContent.startsWith('2 ')")
+    until(p, "document.getElementById('map-count')?.textContent.startsWith('2 ')")
     held[0].continue_()                                                                              # now the old answer (7) arrives
     p.wait_for_timeout(800)
     assert p.inner_text("#map-count") == "2 datasets shown"
@@ -232,7 +271,7 @@ def test_map_box_filter_drawn_and_a_bad_box_is_refused_in_words(pg):
     p.wait_for_selector("#map-count")
     p.fill("#bbox", "69,14,70,16")                                       # touches the buoy point (68,15)? no: 68 < 69
     p.click("button[type=submit]")
-    until(p, "document.getElementById('map-count').textContent.includes('shown')")
+    until(p, "document.getElementById('map-count')?.textContent.includes('shown')")
     keys = sorted(r[0] for r in table_rows(p, "table.list"))
     assert "buoy_met_wave_synthetic_2025q1" not in keys and "hostile" not in keys                   # longitude 68 is outside 69..70
     assert "argo_synthetic_arabian_sea_2025q1" in keys and "ctd_casts_synthetic_arabian_sea_2025" in keys
@@ -357,7 +396,7 @@ def test_series_of_the_real_buoy_has_a_band_and_a_mean_that_is_inside_it(pg):
 # ------------------------------------------------------------------------------------ sst --
 def test_sst_shows_a_cell_for_every_grid_point_and_the_cell_values_are_the_products(pg):
     pg.login()
-    p = pg.go("sst", "#month").page
+    p = pg.go("sst?key=sst_monthly_mean__sst_synthetic_0p25deg_2025q1", "#month").page
     p.wait_for_selector("svg.chart rect.cell")
     assert p.locator("svg.chart rect.cell").count() == 169                   # the box 60,8,63,11 at 0.25 degrees: 13 x 13
     p.click("main .tableblock button")
@@ -378,13 +417,61 @@ def test_sst_shows_a_cell_for_every_grid_point_and_the_cell_values_are_the_produ
 def test_sst_too_large_a_box_shows_the_api_refusal_not_a_blank_chart(pg):
     pg.login()
     sql("UPDATE api_limit SET value = 100 WHERE name = 'max_rows_subset'", fetch=False)
-    p = pg.go("sst", "#month").page
+    p = pg.go("sst?key=sst_monthly_mean__sst_synthetic_0p25deg_2025q1", "#month").page
     p.fill("#bbox", "60,8,75,24")
     p.click("button[type=submit]")
     p.wait_for_selector(".messages .error")
     text = p.inner_text(".messages .error")
     assert text.startswith("Too much data requested (HTTP 413)") and "max_rows_subset = 100" in text
     assert p.locator("svg.chart rect.cell").count() == 0
+
+
+def _count_subset_requests(pg, key):
+    return [u for u in pg.urls if f"/products/{key}/subset" in u]
+
+
+def test_sst_stops_at_the_row_cap_says_so_and_asks_for_no_more_pages(pg):
+    key = "sst_monthly_mean__sst_synthetic_0p25deg_2025q1"
+    pg.login()
+    p = pg.go("sst?key=" + key, "#month").page
+    first = p.evaluate(f"fetch('/products/{key}/subset?bbox=60,8,75,24&time_from=2025-01-01&time_to=2025-01-31&page_size=1', {{credentials: 'same-origin'}}).then(r => r.json())")
+    assert "n_rows_selected" in first, first
+    total = first["n_rows_selected"]
+    limits = {l['name']: l['value'] for l in p.evaluate("fetch('/limits', {credentials: 'same-origin'}).then(r => r.json())")['limits']}
+    assert 2000 < total < limits["max_rows_subset"], (total, limits)                  # over the drawing cap, under the API's own limit
+    page_size = min(200, limits["page_size_max"])
+    before = len(_count_subset_requests(pg, key))
+    p.fill("#bbox", "60,8,75,24")
+    p.click("button[type=submit]")
+    p.wait_for_selector("svg.chart rect.cell")
+    drawn = p.locator("svg.chart rect.cell").count()
+    notice = [t for t in p.locator(".result p.notice").all_inner_texts() if t.startswith("Only the first")]
+    assert notice == [f"Only the first {drawn} of {total} cells are drawn. Use a smaller box."], notice
+    assert drawn == -(-2000 // page_size) * page_size and drawn < total               # whole pages up to the cap: 2000 with a page of 200
+    assert len(_count_subset_requests(pg, key)) - before == -(-2000 // page_size)      # exactly the pages needed to reach the cap, none after it
+
+
+def test_series_stops_at_the_row_cap_says_so_and_asks_for_no_more_pages(pg):
+    key = "series_hourly__buoy_met_wave_synthetic_2025q1"
+    pg.login()
+    p = pg.go("series", "#product").page
+    p.select_option("#product", key)
+    p.select_option("#variable", "air_pressure")
+    p.fill("#time_from", "2025-01-01")
+    p.fill("#time_to", "2025-04-01")
+    limits = {l['name']: l['value'] for l in p.evaluate("fetch('/limits', {credentials: 'same-origin'}).then(r => r.json())")['limits']}
+    first = p.evaluate(f"fetch('/products/{key}/subset?variable=air_pressure_mean&time_from=2025-01-01&time_to=2025-04-01&page_size=1', {{credentials: 'same-origin'}}).then(r => r.json())")
+    total = first["n_rows_selected"]
+    assert 2000 < total < limits["max_rows_subset"], (total, limits)
+    before = len(_count_subset_requests(pg, key))
+    p.click("button[type=submit]")
+    p.wait_for_selector("svg.chart path.line")
+    notice = [t for t in p.locator(".result p.notice").all_inner_texts() if t.startswith("Only the first")]
+    assert len(notice) == 1
+    n = int(notice[0].split()[3])
+    assert notice[0] == f"Only the first {n} of {total} rows are drawn. Narrow the time range." and n < total
+    assert p.locator("svg.counts rect.bar").count() == n                                 # one bar per bin drawn
+    assert len(_count_subset_requests(pg, key)) - before == -(-2000 // min(200, limits["page_size_max"]))
 
 
 # ---------------------------------------------------------------------- explore, notices --
@@ -411,7 +498,7 @@ def test_a_truncated_page_says_so_and_offers_the_next_page(pg):
     assert "page 1 of 96 (4800 selected)" in p.inner_text(".messages .notice")
     assert p.locator("button:has-text('Next page (2)')").count() == 1
     p.click("button:has-text('Next page (2)')")
-    until(p, "document.getElementById('explore-count').textContent.endsWith('(page 2)')")
+    until(p, "document.getElementById('explore-count')?.textContent.endsWith('(page 2)')")
     assert "page 2 of 96" in p.inner_text(".messages .notice")
 
 
@@ -510,11 +597,11 @@ def test_a_hostile_search_text_is_sent_as_a_value_and_never_changes_the_query(pg
     p.wait_for_selector("#map-count")
     p.fill("#q", "x' OR '1'='1")
     p.click("button[type=submit]")
-    until(p, "document.getElementById('map-count').textContent.startsWith('0 ')")
+    until(p, "document.getElementById('map-count')?.textContent.startsWith('0 ')")
     assert p.inner_text("#map-count") == "0 datasets shown"
     p.fill("#q", "&platform_type=argo_float&page_size=1")                    # looks like extra parameters; it is only text
     p.click("button[type=submit]")
-    until(p, "document.getElementById('map-count').textContent.includes('shown')")
+    until(p, "document.getElementById('map-count')?.textContent.includes('shown')")
     assert p.inner_text("#map-count") == "0 datasets shown"
 
 
@@ -611,7 +698,7 @@ def test_every_view_is_reachable_from_the_nav_and_the_current_one_is_marked(pg):
     p = pg.page
     for view in ("map", "profile", "series", "sst", "explore"):
         p.click(f"nav a[data-view={view}]")
-        until(p, f"document.querySelector('nav a[data-view={view}]').getAttribute('aria-current') === 'page'")
+        until(p, f"document.querySelector('nav a[data-view={view}]')?.getAttribute('aria-current') === 'page'")
         assert p.locator("nav a[aria-current=page]").count() == 1
 
 
@@ -621,3 +708,81 @@ def test_the_files_the_page_loads_are_served_without_caching_and_unknown_files_a
     for name in ("package.json", "../logic.js", "secret.txt", "%2e%2e/%2e%2e/etc/passwd"):
         assert pg.ctx.request.get(f"{BASE}/app/{name}").status in (404, 403)
     assert pg.ctx.request.get(BASE + "/", max_redirects=0).status == 307
+
+
+AXE = ROOT / "tests/tools/node_modules/axe-core/axe.min.js"      # npm install --prefix tests/tools  (a test-time tool; never served, never committed)
+
+
+@pytest.mark.skipif(not AXE.is_file(), reason="axe-core is not installed: run `npm install --prefix tests/tools`")
+def test_axe_core_finds_no_wcag_a_or_aa_violation_in_any_view(pg):
+    pg.login()
+    p = pg.page
+    src = AXE.read_text()
+    tags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]
+    found = {}
+    views = [("map", "#map-count"), ("profile", "#profile"), ("series", "svg.chart path.line, #product"), ("sst", "#month"), ("explore", "#key")]
+    for view, wait in views:
+        pg.go(view, wait)
+        if view == "profile":
+            p.wait_for_selector("svg.panel")
+        if view == "series":
+            p.click("button[type=submit]")
+            p.wait_for_selector("svg.chart path.line")
+        if view == "sst":
+            p.wait_for_selector("svg.chart rect.cell")
+        p.evaluate(src)                                            # Runtime.evaluate is not blocked by the page's CSP; nothing is added to the served files
+        res = p.evaluate("axe.run(document, {runOnly: {type: 'tag', values: %s}}).then(r => ({n: r.violations.length, v: r.violations.map(x => ({id: x.id, impact: x.impact, nodes: x.nodes.slice(0, 3).map(n => n.target.join(' '))})), passes: r.passes.length}))" % tags)
+        assert res["passes"] > 10, (view, res)                     # axe really ran rules on this page
+        if res["v"]:
+            found[view] = res["v"]
+    pg2 = Pg(p.context.browser)
+    try:
+        pg2.page.goto(BASE + "/app")
+        pg2.page.wait_for_selector("#username")
+        pg2.page.evaluate(src)
+        res = pg2.page.evaluate("axe.run(document, {runOnly: {type: 'tag', values: %s}}).then(r => r.violations.map(x => ({id: x.id, impact: x.impact})))" % tags)
+        if res:
+            found["login"] = res
+    finally:
+        pg2.close()
+    assert found == {}, found
+
+
+# ---------------------------------------------------------------------------------------- the helper itself --
+class _FakePage:
+    def __init__(self, outcomes):
+        self.outcomes, self.calls = list(outcomes), 0
+
+    def evaluate(self, _js):
+        self.calls += 1
+        o = self.outcomes.pop(0) if self.outcomes else True
+        if isinstance(o, Exception):
+            raise o
+        return o
+
+
+def test_until_retries_a_navigation_but_nothing_else():
+    nav = Exception("Page.evaluate: Execution context was destroyed, most likely because of a navigation")
+    page = _FakePage([nav, nav, False, True])
+    until(page, "x", timeout=5)
+    assert page.calls == 4                                                  # two navigations retried, one False, then true
+    boom = Exception("Page.evaluate: TypeError: Cannot read properties of null (reading 'textContent')")
+    page = _FakePage([boom, True])
+    with pytest.raises(AssertionError, match="TypeError: Cannot read properties of null"):
+        until(page, "document.getElementById('nope').textContent", timeout=5)
+    assert page.calls == 1                                                  # it did not look again
+    page = _FakePage([nav] * 1000)
+    with pytest.raises(AssertionError, match=r"timed out waiting for: x \(last error: .*Execution context was destroyed"):
+        until(page, "x", timeout=0.5)
+
+
+def test_until_fails_at_once_on_a_real_page_that_throws(browser):
+    pgx = Pg(browser)
+    try:
+        pgx.page.set_content("<p id=a>x</p>")
+        t0 = time.monotonic()
+        with pytest.raises(AssertionError, match="TypeError"):
+            until(pgx.page, "document.getElementById('missing').textContent === 'x'", timeout=15)
+        assert time.monotonic() - t0 < 5                                    # at once, not after the 15 s timeout
+    finally:
+        pgx.close()

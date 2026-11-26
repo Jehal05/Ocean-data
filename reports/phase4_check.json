@@ -132,7 +132,7 @@
  {
   "check": "access API: whole file",
   "status": "PASS",
-  "evidence": ".................                                                        [100%]"
+  "evidence": "...................                                                      [100%]"
  },
  {
   "check": "mutation check: every safeguard switched off is noticed",

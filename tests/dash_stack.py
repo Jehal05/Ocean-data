@@ -4,7 +4,7 @@ real review flow, products built, and the access API served by uvicorn. One comm
 
     python3 tests/dash_stack.py [--port 18080] [--tiny]
 
---tiny adds the small hand-made datasets (hostile names, a stale product, a wrap-around SST) that the browser tests check by hand.
+--tiny adds the small hand-made datasets (hostile names, a stale product, a grid that crosses 180 degrees) that the browser tests check by hand.
 Without it, only the five synthetic files in data/raw are loaded: that is the demo. Prints READY <url> when it is up; stop with Ctrl-C."""
 from __future__ import annotations
 
@@ -76,12 +76,15 @@ def main() -> int:
         A.register(A.tiny_series(), "hostile")
         A.register(A.tiny_profiles(), "stale_target")
         A.register(A.tiny_profiles(), "unpub", status="in_review")
+        A.register(A.tiny_sst(lon=(179.0, -179.0)), "antimeridian")
     os.environ["PRODUCTS_DATABASE_URL"] = db_stub.PRODUCTS_URL
     from scats_products import build_all
     bad = [r for r in build_all() if r.status == "failed"]
     if bad:
         print("product build failed:", [r.detail for r in bad], file=sys.stderr)
         stop()
+    if args.tiny:                                       # the catalogue says "this grid crosses 180": west edge 178, east edge -178 (CF: min > max)
+        A.sql("UPDATE dataset SET attributes = attributes || '{\"geospatial_lon_min\": 178.0, \"geospatial_lon_max\": -178.0}'::jsonb WHERE dataset_key = 'antimeridian'", fetch=False)
     env = dict(os.environ, DATABASE_URL=db_stub.ACCESS_URL, AUTH_COOKIE_SECURE="false",
                PYTHONPATH=os.pathsep.join(str(ROOT / p) for p in ("libs", "components/02_parser_api", "components/03_qc_framework",
                                                                   "components/05_data_store", "components/07_data_access_api")))

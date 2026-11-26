@@ -125,7 +125,7 @@ Branch `phase-5-dashboard`. Design and "as built": `docs/phase5_design.md`. Guid
 
 Five views on the Phase 4 API only (Map, Profile, Series, SST, Explore/download). Plain ES modules, SVG charts, no third-party JavaScript, no CDN, no build step. Every view shows data_version, product_version, qc_config_sha256 and the flags used, says when a page is truncated or a product is stale, and the footer says when the data is synthetic. No coastline or tiles are drawn (none is licensed in the repo; the map is a graticule).
 
-**Check:** `python3 tests/check_phase5.py` (Node tests, static rules, browser tests in headless Chrome, mutation check, Phase 1-4 regression, lint). Screenshots are in `docs/screens/`.
+**Check:** `python3 tests/check_phase5.py` (Node tests, static rules, browser tests in headless Chrome, mutation check, Phase 1-4 regression, lint). Screenshots are in `docs/screens/`. Optional accessibility check with axe-core (test-time only): `npm install --prefix tests/tools`; without it that check is skipped.
 
 **Stand-ins:** PostgreSQL 16 without PostGIS and moto instead of SeaweedFS. Docker was not built or run. Browser tested: headless Chrome for Testing 153 via Playwright only.
 

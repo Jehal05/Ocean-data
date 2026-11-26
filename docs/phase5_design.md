@@ -87,15 +87,30 @@ Coastline and bathymetry contours on the map (needs a licence-clear dataset); zo
 | Cookie `Secure` flag | Off by default (`AUTH_COOKIE_SECURE=false`) so a plain-HTTP demo works. Must be `true` behind TLS. **Not fixed; documented.** |
 | Rate limit | Per user per minute from `api_limit`; the UI shows the 429 text. **Tested through the UI.** |
 | Login lock | 5 failures per user / 20 per IP in 15 minutes; the UI says so. **Tested through the UI.** |
-| Default passwords | Login page warns while seed passwords are in use, from a yes/no in `/health`. **Fixed.** |
+| Default passwords | Login page warns while seed passwords are in use, from a yes/no in `/health`. **Changed after review (trade-off):** a public yes/no tells an attacker that the seed passwords work, so `default_passwords` is now `true`/`false` only to a caller whose TCP peer is loopback (read from the connection, never from `X-Forwarded-For`/`Forwarded`), and `null` to everyone else; the answer is cached 60 s (`DEFAULT_PASSWORDS_CACHE_S`) so `/health` makes at most one database call a minute for it, and a failed lookup is not cached. Consequence: the warning is shown only when the dashboard is opened on the server itself. Behind a reverse proxy on the same host the peer is the proxy, which looks like loopback unless the server is started with trusted forwarded headers (uvicorn does this for 127.0.0.1 by default) — check this when deploying. |
 | `/health` | Booleans and the version only; no account names, no host or database names. **Tested.** |
 | Compose healthcheck | `api` already has one (`/health/live`); the Dockerfile now also copies the dashboard files. **Config checked only if the Docker CLI is present (SKIP otherwise); not run.** |
 | Dead code and TODO sweep | No TODO/FIXME in the components or tests; ruff F/E9 clean. **Done.** |
 | Third-party JS | None. **Tested by `test_dashboard_static.py`.** |
+| Dead code | Review found `overlaps` (never used by the app; deleted with its test), `normLon` and `FLAGS` (used only inside `logic.js`; no longer exported) and `axisFor` in `views.js` (deleted). `test_dashboard_static.py` now fails on any export of `logic.js`/`svg.js` that no other app file imports and on any top-level function or constant that nobody uses. **Fixed.** |
+| Accessibility | WCAG contrast is computed from `style.css` (`test_dashboard_contrast.py`): it found the keyboard focus outline at 2.62:1 (now `#b35c00`, 4.60:1) and a min-max band with no outline at 1.38:1 against the page (the band now has a `#3f7aa0` outline, 4.54:1). axe-core 4.14.1 (installed with `npm install --prefix tests/tools`, never served) found links in the map table under the 24 px target size (WCAG 2.2, 2.5.8); fixed in `style.css`. No screen reader was used. **Fixed.** |
 | Rate limit counts answered requests | Counted from `query_log` in the database, so it holds across replicas; refused requests are not logged and therefore not counted. **Noted, unchanged.** |
 
+### Review fixes (commit after 6a3426e)
+* `/health` default-password answer: loopback only, cached, failure not cached (above).
+* Dead code removed; checked by test (above).
+* SST and series 2000-row caps are now tested (notice text with exact N and M, cells or bars drawn equal N, number of requests equals the pages needed to reach the cap) in `test_sst_stops_at_the_row_cap...` and `test_series_stops_at_the_row_cap...`.
+* A grid that crosses 180 degrees (`antimeridian` in the `--tiny` stack, catalogue edges 178 and -178) and a box that crosses 180 are each drawn in two pieces, tested in the browser.
+* The test helper `until()` retried every exception, which hid page errors; it now retries only "page was replaced" errors and fails at once on any other, with the message.
+* Making `until()` strict exposed callers that relied on the swallowed error; they are now null-safe.
+
+### Found during the fixes, not fixed
+* **API bbox filter and footprints that cross 180.** A dataset whose catalogue edges are west 178 and east -178 (min > max) is returned for `-180,0,180,20` but not for `179,0,180,20` or `-180,0,-178,20`, which do overlap it (checked by hand against the `--tiny` stack). This is Phase 4 behaviour in `service.py`; the brief forbids changing API semantics, so it is recorded here. The dashboard draws such a footprint correctly; the map filter will miss it.
+* The map draws nothing (and so no box) when a filter matches no dataset; it says "0 datasets shown".
+* The SST colour scale ends in yellow, which has low contrast against the page; the values are also given in the table and the scale labels. Not measured against 3:1 and not changed.
+
 ### Dependencies (versions the tests ran against)
-Python 3.13; fastapi 0.165.0; starlette 1.7.0; uvicorn 0.54.0; psycopg2-binary 2.9.13; numpy 2.5.3; pandas 3.0.5; xarray 2026.9.0; netCDF4 1.7.5.1; zarr 3.4.2 (format 2); numcodecs 0.17.1; boto3 1.44.10; moto 5.2.6; gsw 3.6.23; PyYAML 6.0.3; pytest 9.1.1; ruff 0.17.6; Playwright 1.63.0 with Chrome for Testing 153.0.8010.12; Node 22.23.5 (tests only). The dashboard has **no** JavaScript dependency. The Dockerfile base image is `python:3.12-slim` (not run).
+Python 3.13; fastapi 0.165.0; starlette 1.7.0; uvicorn 0.54.0; psycopg2-binary 2.9.13; numpy 2.5.3; pandas 3.0.5; xarray 2026.9.0; netCDF4 1.7.5.1; zarr 3.4.2 (format 2); numcodecs 0.17.1; boto3 1.44.10; moto 5.2.6; gsw 3.6.23; PyYAML 6.0.3; pytest 9.1.1; ruff 0.17.6; Playwright 1.63.0 with Chrome for Testing 153.0.8010.12; Node 22.23.5 (tests only); axe-core 4.14.1 (tests only, `tests/tools/package.json`). The dashboard has **no** JavaScript dependency. The Dockerfile base image is `python:3.12-slim` (not run).
 
 ### Not verified
 Docker build and run; SeaweedFS; PostGIS; browsers other than headless Chrome 153; screen readers (only role, label and focus checks); touch devices; large real datasets.

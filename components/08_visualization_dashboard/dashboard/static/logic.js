@@ -1,7 +1,7 @@
 // Pure functions of the dashboard (no DOM, no network), so they can be tested with `node --test`.
 // Rule: show what the API returned. Nothing here smooths, interpolates or fills a value.
 
-export const FLAGS = {
+const FLAGS = {
   0: { label: "not checked", shape: "square" },
   1: { label: "good", shape: "circle" },
   2: { label: "probably good", shape: "diamond" },
@@ -78,7 +78,7 @@ export const extent = (values) => {
 
 // ---- longitude and boxes ------------------------------------------------------------------------------------------
 // Longitudes are put in [-180, 180). A box with west > east crosses the 180 degree line.
-export function normLon(lon) {
+function normLon(lon) {
   const x = ((((lon + 180) % 360) + 360) % 360) - 180;
   return x;
 }
@@ -100,13 +100,6 @@ export function parseBox(text) {
 }
 
 export const boxParam = (b) => `${b.west},${b.south},${b.east},${b.north}`;
-
-// Does a footprint [lonMin..lonMax]x[latMin..latMax] meet a box? (The API does this for real; the map uses it to dim nothing: only for tests of the idea.)
-export function overlaps(fp, b) {
-  if (fp.latMax < b.south || fp.latMin > b.north) return false;
-  const boxSpans = b.wraps ? [[b.west, 180], [-180, b.east]] : [[b.west, b.east]];
-  return lonSpans(fp.lonMin, fp.lonMax).some(([a, c]) => boxSpans.some(([x, y]) => a <= y && c >= x));
-}
 
 // ---- requests and messages ----------------------------------------------------------------------------------------
 // Query string from an object, skipping empty values; keys are sorted so the same filter always gives the same URL.

@@ -17,17 +17,27 @@
  {
   "check": "dashboard logic (Node, hand-computed values)",
   "status": "PASS",
-  "evidence": "# duration_ms 123.316266"
+  "evidence": "# duration_ms 104.531234"
  },
  {
-  "check": "static rules: no innerHTML/eval/inline script or style/CDN",
+  "check": "static rules: no innerHTML/eval/inline script or style/CDN, no dead exports or declarations",
   "status": "PASS",
-  "evidence": "......                                                                   [100%]"
+  "evidence": ".........                                                                [100%]"
+ },
+ {
+  "check": "WCAG contrast computed from style.css (text 4.5:1, marks and focus 3:1)",
+  "status": "PASS",
+  "evidence": "....                                                                     [100%]"
+ },
+ {
+  "check": "axe-core: no WCAG A/AA violation in any view",
+  "status": "PASS",
+  "evidence": "ran in the browser tests: ........................................                                 [100%]"
  },
  {
   "check": "browser tests: login, views, notices, hostile text, CSP, CSRF, a11y (headless Chrome, real stack)",
   "status": "PASS",
-  "evidence": ".................................                                        [100%]"
+  "evidence": "........................................                                 [100%]"
  },
  {
   "check": "mutation check: every dashboard safeguard switched off is noticed",

@@ -37,7 +37,7 @@
    "file": "components/08_visualization_dashboard/dashboard/static/logic.js",
    "baseline_passes": true,
    "caught": true,
-   "first_failing_test": "node test: not ok 14 - notices: truncated and stale are said plainly",
+   "first_failing_test": "node test: not ok 13 - notices: truncated and stale are said plainly",
    "guarding_tests": [
     "tests/js/logic.test.mjs",
     "tests/integration/test_dashboard_browser.py::test_a_truncated_page_says_so_and_offers_the_next_page"
@@ -48,7 +48,7 @@
    "file": "components/08_visualization_dashboard/dashboard/static/logic.js",
    "baseline_passes": true,
    "caught": true,
-   "first_failing_test": "node test: not ok 14 - notices: truncated and stale are said plainly",
+   "first_failing_test": "node test: not ok 13 - notices: truncated and stale are said plainly",
    "guarding_tests": [
     "tests/js/logic.test.mjs",
     "tests/integration/test_dashboard_browser.py::test_a_stale_product_is_refused_with_the_reason_and_shown_with_a_notice_when_asked"
@@ -86,13 +86,24 @@
    ]
   },
   {
-   "mutation": "map box wraps at 180 degrees",
+   "mutation": "footprint that crosses 180 is drawn in two pieces",
    "file": "components/08_visualization_dashboard/dashboard/static/logic.js",
    "baseline_passes": true,
    "caught": true,
    "first_failing_test": "node test: not ok 7 - longitude wrap at 180 degrees",
    "guarding_tests": [
-    "tests/js/logic.test.mjs"
+    "tests/js/logic.test.mjs",
+    "tests/integration/test_dashboard_browser.py::test_a_footprint_and_a_box_that_cross_180_degrees_are_each_drawn_in_two_pieces"
+   ]
+  },
+  {
+   "mutation": "box that crosses 180 is drawn in two pieces",
+   "file": "components/08_visualization_dashboard/dashboard/static/views.js",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_dashboard_browser.py::test_a_footprint_and_a_box_that_cross_180_degrees_are_each_drawn_in_two_pieces",
+   "guarding_tests": [
+    "tests/integration/test_dashboard_browser.py::test_a_footprint_and_a_box_that_cross_180_degrees_are_each_drawn_in_two_pieces"
    ]
   },
   {
@@ -123,6 +134,147 @@
    "first_failing_test": "tests/integration/test_dashboard_browser.py::test_an_older_answer_arriving_late_never_overwrites_the_newer_one",
    "guarding_tests": [
     "tests/integration/test_dashboard_browser.py::test_an_older_answer_arriving_late_never_overwrites_the_newer_one"
+   ]
+  },
+  {
+   "mutation": "/health: only a loopback caller is told about default passwords",
+   "file": "components/07_data_access_api/access_api/main.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_access_api.py::test_only_a_loopback_caller_is_told_about_default_passwords_and_a_forwarded_header_changes_nothing",
+   "guarding_tests": [
+    "tests/integration/test_access_api.py::test_only_a_loopback_caller_is_told_about_default_passwords_and_a_forwarded_header_changes_nothing"
+   ]
+  },
+  {
+   "mutation": "/health: the peer address is read from the connection, not a forwarded header",
+   "file": "components/07_data_access_api/access_api/main.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_access_api.py::test_only_a_loopback_caller_is_told_about_default_passwords_and_a_forwarded_header_changes_nothing",
+   "guarding_tests": [
+    "tests/integration/test_access_api.py::test_only_a_loopback_caller_is_told_about_default_passwords_and_a_forwarded_header_changes_nothing"
+   ]
+  },
+  {
+   "mutation": "/health: the default-password answer is cached",
+   "file": "components/07_data_access_api/access_api/main.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_access_api.py::test_default_password_answer_is_cached_and_a_failure_is_not",
+   "guarding_tests": [
+    "tests/integration/test_access_api.py::test_default_password_answer_is_cached_and_a_failure_is_not"
+   ]
+  },
+  {
+   "mutation": "/health: a failed lookup is not cached",
+   "file": "components/07_data_access_api/access_api/main.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_access_api.py::test_default_password_answer_is_cached_and_a_failure_is_not",
+   "guarding_tests": [
+    "tests/integration/test_access_api.py::test_default_password_answer_is_cached_and_a_failure_is_not"
+   ]
+  },
+  {
+   "mutation": "login page shows no warning unless the server says true",
+   "file": "components/08_visualization_dashboard/dashboard/static/app.js",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_dashboard_browser.py::test_login_page_shows_no_password_warning_when_the_server_says_null_or_false",
+   "guarding_tests": [
+    "tests/integration/test_dashboard_browser.py::test_login_page_shows_no_password_warning_when_the_server_says_null_or_false"
+   ]
+  },
+  {
+   "mutation": "an export nobody imports is dead code",
+   "file": "components/08_visualization_dashboard/dashboard/static/logic.js",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/unit/test_dashboard_static.py::test_every_export_of_logic_and_svg_is_imported_by_another_app_file",
+   "guarding_tests": [
+    "tests/unit/test_dashboard_static.py::test_every_export_of_logic_and_svg_is_imported_by_another_app_file"
+   ]
+  },
+  {
+   "mutation": "SST row cap",
+   "file": "components/08_visualization_dashboard/dashboard/static/views.js",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_dashboard_browser.py::test_sst_stops_at_the_row_cap_says_so_and_asks_for_no_more_pages",
+   "guarding_tests": [
+    "tests/integration/test_dashboard_browser.py::test_sst_stops_at_the_row_cap_says_so_and_asks_for_no_more_pages"
+   ]
+  },
+  {
+   "mutation": "SST partial-draw notice",
+   "file": "components/08_visualization_dashboard/dashboard/static/views.js",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_dashboard_browser.py::test_sst_stops_at_the_row_cap_says_so_and_asks_for_no_more_pages",
+   "guarding_tests": [
+    "tests/integration/test_dashboard_browser.py::test_sst_stops_at_the_row_cap_says_so_and_asks_for_no_more_pages"
+   ]
+  },
+  {
+   "mutation": "series row cap",
+   "file": "components/08_visualization_dashboard/dashboard/static/views.js",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_dashboard_browser.py::test_series_stops_at_the_row_cap_says_so_and_asks_for_no_more_pages",
+   "guarding_tests": [
+    "tests/integration/test_dashboard_browser.py::test_series_stops_at_the_row_cap_says_so_and_asks_for_no_more_pages"
+   ]
+  },
+  {
+   "mutation": "series partial-draw notice",
+   "file": "components/08_visualization_dashboard/dashboard/static/views.js",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_dashboard_browser.py::test_series_stops_at_the_row_cap_says_so_and_asks_for_no_more_pages",
+   "guarding_tests": [
+    "tests/integration/test_dashboard_browser.py::test_series_stops_at_the_row_cap_says_so_and_asks_for_no_more_pages"
+   ]
+  },
+  {
+   "mutation": "focus outline colour",
+   "file": "components/08_visualization_dashboard/dashboard/static/style.css",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/unit/test_dashboard_contrast.py::test_chart_marks_and_the_focus_outline_have_at_least_3_to_1",
+   "guarding_tests": [
+    "tests/unit/test_dashboard_contrast.py::test_chart_marks_and_the_focus_outline_have_at_least_3_to_1"
+   ]
+  },
+  {
+   "mutation": "band outline",
+   "file": "components/08_visualization_dashboard/dashboard/static/style.css",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/unit/test_dashboard_contrast.py::test_the_check_can_fail_the_colours_it_replaced_were_below_the_limit",
+   "guarding_tests": [
+    "tests/unit/test_dashboard_contrast.py::test_the_check_can_fail_the_colours_it_replaced_were_below_the_limit"
+   ]
+  },
+  {
+   "mutation": "link target size in the map table (axe)",
+   "file": "components/08_visualization_dashboard/dashboard/static/style.css",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_dashboard_browser.py::test_axe_core_finds_no_wcag_a_or_aa_violation_in_any_view",
+   "guarding_tests": [
+    "tests/integration/test_dashboard_browser.py::test_axe_core_finds_no_wcag_a_or_aa_violation_in_any_view"
+   ]
+  },
+  {
+   "mutation": "test helper `until` fails on a real page error",
+   "file": "tests/integration/test_dashboard_browser.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_dashboard_browser.py::test_until_retries_a_navigation_but_nothing_else",
+   "guarding_tests": [
+    "tests/integration/test_dashboard_browser.py::test_until_retries_a_navigation_but_nothing_else",
+    "tests/integration/test_dashboard_browser.py::test_until_fails_at_once_on_a_real_page_that_throws"
    ]
   }
  ],

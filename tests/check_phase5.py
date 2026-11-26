@@ -44,10 +44,17 @@ def main() -> int:
     rc, last = run("node", "--test", "tests/js/logic.test.mjs")
     rec("dashboard logic (Node, hand-computed values)", "PASS" if rc == 0 else "FAIL", last)
     rc, last = run(sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider", "tests/unit/test_dashboard_static.py")
-    rec("static rules: no innerHTML/eval/inline script or style/CDN", "PASS" if rc == 0 else "FAIL", last)
+    rec("static rules: no innerHTML/eval/inline script or style/CDN, no dead exports or declarations", "PASS" if rc == 0 else "FAIL", last)
+    rc, last = run(sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider", "tests/unit/test_dashboard_contrast.py")
+    rec("WCAG contrast computed from style.css (text 4.5:1, marks and focus 3:1)", "PASS" if rc == 0 else "FAIL", last)
+    axe = ROOT / "tests/tools/node_modules/axe-core/axe.min.js"
+    rec("axe-core: no WCAG A/AA violation in any view", "SKIP" if not axe.is_file() else "PENDING", "axe-core is not installed (npm install --prefix tests/tools)" if not axe.is_file() else "runs inside the browser tests below")
     if have_db:
         rc, last = run(sys.executable, "-m", "pytest", "-q", "-p", "no:cacheprovider", "tests/integration/test_dashboard_browser.py")
         rec("browser tests: login, views, notices, hostile text, CSP, CSRF, a11y (headless Chrome, real stack)", "PASS" if rc == 0 else "FAIL", last)
+        for i, (n, st, ev) in enumerate(results):
+            if st == "PENDING":
+                results[i] = (n, "PASS" if rc == 0 else "FAIL", "ran in the browser tests: " + last)
         rc, last = run(sys.executable, "tests/mutation_check_phase5.py")
         rec("mutation check: every dashboard safeguard switched off is noticed", "PASS" if rc == 0 else "FAIL", f"exit {rc}; see reports/phase5_mutation_check.md")
         rc, last = run(sys.executable, "tests/check_phase4.py")

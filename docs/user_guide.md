@@ -15,3 +15,5 @@ Open `/app` on the access API. Sign in with the account you were given. Use the 
 **Explore.** Choose a dataset or product, set filters, preview the first page, and download CSV or NetCDF. The server chooses the file name. Cells that begin like a spreadsheet formula are prefixed with `'`.
 
 **Messages.** Errors show the HTTP status and the API's own words, for example "Too much data requested (HTTP 413)". Too many requests: wait a minute. Session ended: sign in again.
+
+**For the operator.** Behind TLS, set `AUTH_COOKIE_SECURE=true` so the session cookie is only sent over HTTPS (it is off by default so a plain-HTTP demo works), and set HSTS at the reverse proxy; this service does not. The login page shows the default-password warning only when it is opened on the server itself (the API tells only a loopback caller).

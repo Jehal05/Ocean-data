@@ -673,12 +673,58 @@ def test_zarr_listing(world):
 
 
 # ================================================================== Phase 5 additions ==
+def _client_at(world, host):
+    return TestClient(world.app, client=(host, 50000), raise_server_exceptions=False)
+
+
 def test_health_has_only_booleans_and_names_no_account(world):
-    j = world.client.get("/health").json()
-    assert set(j) == {"status", "service", "version", "database", "storage", "default_passwords"}
-    assert j["default_passwords"] in (True, False, None)
-    for name in ("admin", "reviewer", "viewer"):
-        assert name not in world.client.get("/health").text.replace("scats-data-access-api", "")
+    from access_api import main as M
+    M._reset_default_password_cache()
+    for host in ("127.0.0.1", "::1"):
+        r = _client_at(world, host).get("/health")
+        assert set(r.json()) == {"status", "service", "version", "database", "storage", "default_passwords"}
+        assert r.json()["default_passwords"] is True or r.json()["default_passwords"] is False       # the seed accounts exist here: a real yes/no
+        for name in ("admin", "reviewer", "viewer"):
+            assert name not in r.text.replace("scats-data-access-api", "")
+
+
+def test_only_a_loopback_caller_is_told_about_default_passwords_and_a_forwarded_header_changes_nothing(world):
+    from access_api import main as M
+    M._reset_default_password_cache()
+    assert _client_at(world, "127.0.0.1").get("/health").json()["default_passwords"] is True            # the dev seed passwords are still set in this test database
+    for host in ("testclient", "203.0.113.9", "10.1.2.3", "2001:db8::1"):
+        assert _client_at(world, host).get("/health").json()["default_passwords"] is None, host
+    spoof = _client_at(world, "203.0.113.9").get("/health", headers={"X-Forwarded-For": "127.0.0.1", "X-Real-IP": "127.0.0.1", "Forwarded": "for=127.0.0.1"})
+    assert spoof.json()["default_passwords"] is None
+
+
+def test_default_password_answer_is_cached_and_a_failure_is_not(world, monkeypatch):
+    from access_api import main as M
+    calls = []
+    outcomes = [RuntimeError("database down"), [], ["admin"]]
+
+    def spy(_url):
+        calls.append(1)
+        o = outcomes[len(calls) - 1] if len(calls) <= len(outcomes) else outcomes[-1]
+        if isinstance(o, Exception):
+            raise o
+        return o
+
+    monkeypatch.setattr(M.auth, "default_password_users", spy)
+    c = _client_at(world, "127.0.0.1")
+    M._reset_default_password_cache()
+    assert c.get("/health").json()["default_passwords"] is None and len(calls) == 1                       # failed: null, and not remembered
+    assert c.get("/health").json()["default_passwords"] is False and len(calls) == 2                      # looked again, now answered
+    for _ in range(5):
+        assert c.get("/health").json()["default_passwords"] is False                                     # served from the cache
+    assert len(calls) == 2
+    other = _client_at(world, "203.0.113.9")
+    for _ in range(3):
+        other.get("/health")
+    assert len(calls) == 2                                                                                # a non-loopback caller never causes a database call
+    M._reset_default_password_cache()
+    assert c.get("/health").json()["default_passwords"] is True and len(calls) == 3                       # after a reset, it asks again
+    M._reset_default_password_cache()
 
 
 def test_the_extra_security_headers_and_the_public_dashboard_routes(world):

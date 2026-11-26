@@ -7,6 +7,7 @@ from __future__ import annotations
 
 import logging
 import os
+import time
 from pathlib import Path
 
 import boto3
@@ -132,19 +133,41 @@ def live() -> dict:
     return {"status": "ok"}
 
 
-def _default_passwords() -> bool | None:
-    """True while any account still has its published seed password. Only the yes/no leaves the server, never the names."""
+DEFAULT_PASSWORDS_CACHE_S = 60            # how long a successful "do the seed passwords still work" answer is reused
+_dp_cache: dict = {"at": None, "value": None}
+
+
+def _reset_default_password_cache() -> None:
+    _dp_cache.update(at=None, value=None)
+
+
+def _is_loopback(request: Request) -> bool:
+    """True when the TCP peer is this machine. Read from the connection only, never from a forwarded header."""
+    host = request.client.host if request.client else ""
+    return host in ("127.0.0.1", "::1")
+
+
+def _default_passwords(request: Request) -> bool | None:
+    """True/False only for a caller on a loopback address (the operator at the console); everyone else, and any failure, gets None.
+    The yes/no is cached for DEFAULT_PASSWORDS_CACHE_S, so a flood of /health calls makes one database call. A failed lookup is not cached."""
+    if not _is_loopback(request):
+        return None
+    now = time.monotonic()
+    if _dp_cache["at"] is not None and now - _dp_cache["at"] < DEFAULT_PASSWORDS_CACHE_S:
+        return _dp_cache["value"]
     try:
-        return bool(auth.default_password_users(settings()["db_url"]))
+        value = bool(auth.default_password_users(settings()["db_url"]))
     except Exception:  # noqa: BLE001
         return None
+    _dp_cache.update(at=now, value=value)
+    return value
 
 
 @app.get("/health", tags=["health"])
-def health() -> dict:
+def health(request: Request) -> dict:
     db, storage = check_database(), check_storage()
     return {"status": "ok" if db["ok"] and storage["ok"] else "degraded", "service": "scats-data-access-api", "version": VERSION,
-            "database": {"ok": db["ok"]}, "storage": storage, "default_passwords": _default_passwords()}
+            "database": {"ok": db["ok"]}, "storage": storage, "default_passwords": _default_passwords(request)}
 
 
 # --------------------------------------------------------------- dashboard --

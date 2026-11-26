@@ -12,7 +12,7 @@ footer p { margin: 2px 0; }
 nav { display: flex; flex-wrap: wrap; gap: 6px 14px; align-items: center; }
 nav a { color: var(--accent); padding: 2px 4px; }
 nav a[aria-current="page"] { font-weight: 700; border-bottom: 2px solid var(--accent); text-decoration: none; }
-a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focus-visible { outline: 3px solid #e08a00; outline-offset: 2px; }
+a:focus-visible, button:focus-visible, input:focus-visible, select:focus-visible, [tabindex]:focus-visible { outline: 3px solid #b35c00; outline-offset: 2px; }
 .skip { position: absolute; left: -999px; top: 0; background: #fff; padding: 6px; }
 .skip:focus { left: 6px; z-index: 5; }
 button { font: inherit; padding: 4px 12px; border: 1px solid var(--accent); background: #fff; color: var(--accent); border-radius: 4px; cursor: pointer; }
@@ -37,7 +37,7 @@ th { background: #eef3f6; } caption { text-align: left; font-weight: 600; paddin
 .grid { stroke: #dde5ea; stroke-width: 1; } .plot { stroke: #5d6e7a; stroke-width: 1; }
 .tick { font-size: 11px; fill: #33444f; } .label { font-size: 12px; fill: var(--fg); }
 .line { fill: none; stroke: var(--accent); stroke-width: 1.6; }
-.band { fill: var(--band); fill-opacity: 0.6; stroke: none; }
+.band { fill: var(--band); fill-opacity: 0.6; stroke: #3f7aa0; stroke-width: 1; }
 .bar { fill: #5d6e7a; }
 .mk { fill: var(--accent); stroke: #fff; stroke-width: 0.8; }
 .mk.ring, .mk.cross { fill: none; stroke: #33444f; stroke-width: 1.6; }
@@ -50,3 +50,4 @@ th { background: #eef3f6; } caption { text-align: left; font-weight: 600; paddin
 .buttons { display: flex; gap: 10px; flex-wrap: wrap; }
 .limits { margin-top: 14px; font-size: 13px; }
 [hidden] { display: none !important; }
+table.list td a { display: inline-block; min-width: 24px; min-height: 24px; padding: 3px 6px; }   /* WCAG 2.2 target size (2.5.8) */

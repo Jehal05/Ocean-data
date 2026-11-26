@@ -3,8 +3,8 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  bandRuns, baseVariables, boxParam, columnsOf, citation, colour, dispositionName, errorText, extent, flagInfo, fmt, lonSpans, monthRange, months, niceAxis, normLon,
-  notices, oneProfile, overlaps, parseBox, plusSeconds, profileList, query, runs, timeAxis, utc,
+  bandRuns, baseVariables, boxParam, columnsOf, citation, colour, dispositionName, errorText, extent, flagInfo, fmt, lonSpans, monthRange, months, niceAxis,
+  notices, oneProfile, parseBox, plusSeconds, profileList, query, runs, timeAxis, utc,
 } from "../../components/08_visualization_dashboard/dashboard/static/logic.js";
 
 test("flags: shape and label for every flag, unknown is never good", () => {
@@ -63,15 +63,12 @@ test("extent ignores missing values", () => {
 });
 
 test("longitude wrap at 180 degrees", () => {
-  assert.equal(normLon(190), -170);
-  assert.equal(normLon(-190), 170);
-  assert.equal(normLon(180), -180);
-  assert.equal(normLon(65), 65);
-  assert.equal(normLon(540), -180);
   assert.deepEqual(lonSpans(60, 75), [[60, 75]]);
   assert.deepEqual(lonSpans(170, -170), [[170, 180], [-180, -170]]);
   assert.deepEqual(lonSpans(170, 190), [[170, 180], [-180, -170]]);
   assert.deepEqual(lonSpans(-10, 10), [[-10, 10]]);
+  assert.deepEqual(lonSpans(190, 200), [[-170, -160]]);          // both edges wrapped into -180..180
+  assert.deepEqual(lonSpans(540, 550), [[-180, -170]]);
 });
 
 test("box parsing: plain numbers, west > east means across 180", () => {
@@ -87,17 +84,6 @@ test("box parsing: plain numbers, west > east means across 180", () => {
   assert.match(parseBox("1,2,2000,3").error, /between -540 and 540/);
   assert.equal(parseBox("1e3,2,3,4").error !== undefined, true);
   assert.equal(boxParam(parseBox("60,5,80,25")), "60,5,80,25");
-});
-
-test("overlap of a footprint with a box, including across 180", () => {
-  const fp = { lonMin: 170, lonMax: -170, latMin: 0, latMax: 10 };
-  assert.equal(overlaps(fp, parseBox("175,2,179,5")), true);
-  assert.equal(overlaps(fp, parseBox("-175,2,-172,5")), true);
-  assert.equal(overlaps(fp, parseBox("0,2,10,5")), false);
-  assert.equal(overlaps(fp, parseBox("175,20,179,25")), false);
-  assert.equal(overlaps({ lonMin: 62, lonMax: 72.5, latMin: 15, latMax: 15 }, parseBox("60,10,80,20")), true);
-  assert.equal(overlaps({ lonMin: 62, lonMax: 72.5, latMin: 15, latMax: 15 }, parseBox("73,10,80,20")), false);
-  assert.equal(overlaps({ lonMin: 60, lonMax: 75, latMin: 8, latMax: 24 }, parseBox("170,-10,-170,10")), false);
 });
 
 test("query string: sorted, empty values left out, no injection of extra parameters", () => {

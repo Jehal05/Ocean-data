@@ -48,3 +48,47 @@ def test_state_changing_calls_send_the_csrf_header():
     api = text("api.js")
     assert '"X-Requested-With": "scats-ui"' in api
     assert "credentials" in api
+
+
+# ---- dead code: nothing may be exported that no app file imports, and nothing declared that nobody uses ------------
+APP_FILES = ("app.js", "api.js", "logic.js", "svg.js", "views.js")
+EXPORT_ALLOW = {}          # name -> why it is exported though no app file imports it. Empty on purpose: a test-only export is dead code.
+EXPORT_RE = r"^export\s+(?:async\s+)?(?:function|const|class|let)\s+([A-Za-z_$][\w$]*)"
+DECL_RE = r"^(?:export\s+)?(?:async\s+)?(?:function|const|let)\s+([A-Za-z_$][\w$]*)"
+
+
+def uses(name, src):
+    return len(re.findall(rf"(?<![\w$]){re.escape(name)}(?![\w$])", src))
+
+
+def unused_exports(files, only, allow=()):
+    """Names exported by the files in `only` that no OTHER file in `files` mentions."""
+    bad = []
+    for fname in only:
+        others = "\n".join(src for f, src in files.items() if f != fname)
+        bad += [(fname, e) for e in re.findall(EXPORT_RE, files[fname], flags=re.M) if e not in allow and not uses(e, others)]
+    return bad
+
+
+def unused_declarations(files):
+    bad = []
+    for fname, src in files.items():
+        others = "\n".join(o for f, o in files.items() if f != fname)
+        bad += [(fname, d) for d in re.findall(DECL_RE, src, flags=re.M) if uses(d, src) <= 1 and not uses(d, others)]
+    return bad
+
+
+def test_the_dead_code_rules_can_fail():
+    files = {"a.js": "export function used() {}\nexport function dead() {}\nfunction helper() {}\nconst $ = 1;\nused();", "b.js": "import { used } from './a.js'; used();"}
+    assert unused_exports(files, ["a.js"]) == [("a.js", "dead")]
+    assert unused_exports(files, ["a.js"], allow={"dead": "why"}) == []
+    assert unused_declarations(files) == [("a.js", "dead"), ("a.js", "helper"), ("a.js", "$")]
+
+
+def test_every_export_of_logic_and_svg_is_imported_by_another_app_file():
+    files = {f: text(f) for f in APP_FILES}
+    assert unused_exports(files, ["logic.js", "svg.js"], EXPORT_ALLOW) == []
+
+
+def test_every_top_level_function_and_constant_is_used_somewhere():
+    assert unused_declarations({f: text(f) for f in APP_FILES}) == []

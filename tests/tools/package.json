@@ -1,0 +1,6 @@
+{
+  "name": "scats-test-tools",
+  "private": true,
+  "description": "Test-time tools only. Nothing here is served or shipped. Install with: npm install --prefix tests/tools",
+  "devDependencies": { "axe-core": "4.14.1" }
+}

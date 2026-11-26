@@ -20,8 +20,10 @@ import db_stub  # noqa: E402
 S = "components/08_visualization_dashboard/dashboard/static"
 B = "tests/integration/test_dashboard_browser.py"
 STATIC = "tests/unit/test_dashboard_static.py"
+CONTRAST = "tests/unit/test_dashboard_contrast.py"
 NODE = "tests/js/logic.test.mjs"
 ACC = "components/07_data_access_api/access_api"
+API = "tests/integration/test_access_api.py"
 
 # (name, file, old text (must occur once), new text, guarding tests: pytest ids, or "node")
 MUTATIONS = [
@@ -42,13 +44,44 @@ MUTATIONS = [
     ("flag shown with its label", f"{S}/views.js", "`${r[c]} ${flagInfo(r[c]).label}`", "`${r[c]}`",
      [f"{B}::test_profile_with_all_values_shows_the_flag_by_shape_and_label"]),
     ("unknown flag is never shown as good", f"{S}/logic.js", "label: `unknown flag ${Number(flag)}`", "label: \"good\"", [NODE]),
-    ("map box wraps at 180 degrees", f"{S}/logic.js", "  return a <= b ? [[a, b]] : [[a, 180], [-180, b]];", "  return [[a, b]];", [NODE]),
+    ("footprint that crosses 180 is drawn in two pieces", f"{S}/logic.js", "  return a <= b ? [[a, b]] : [[a, 180], [-180, b]];", "  return [[a, b]];",
+     [NODE, f"{B}::test_a_footprint_and_a_box_that_cross_180_degrees_are_each_drawn_in_two_pieces"]),
+    ("box that crosses 180 is drawn in two pieces", f"{S}/views.js", "    const spans = box.wraps ? [[box.west, 180], [-180, box.east]] : [[box.west, box.east]];\n    for (const [a, b] of spans) svg.append",
+     "    const spans = [[box.west, box.east]];\n    for (const [a, b] of spans) svg.append", [f"{B}::test_a_footprint_and_a_box_that_cross_180_degrees_are_each_drawn_in_two_pieces"]),
     ("session expiry sends the user to login", f"{S}/views.js", 'dispatchEvent(new CustomEvent("scats-unauthorised"))', "void 0",
      [f"{B}::test_an_expired_session_sends_the_user_back_to_the_login_page"]),
     ("products are asked without the quality parameter", f"{S}/views.js", 'quality: type === "product" ? "" : val("quality")', 'quality: val("quality")',
      [f"{B}::test_a_stale_product_is_refused_with_the_reason_and_shown_with_a_notice_when_asked"]),
     ("only the newest request draws (map)", f"{S}/views.js", "      if (mine !== seq) return;\n      msg.notes(notices(r));\n      drawMap(", "      msg.notes(notices(r));\n      drawMap(",
      [f"{B}::test_an_older_answer_arriving_late_never_overwrites_the_newer_one"]),
+
+    ("/health: only a loopback caller is told about default passwords", f"{ACC}/main.py", "    if not _is_loopback(request):\n        return None\n", "",
+     [f"{API}::test_only_a_loopback_caller_is_told_about_default_passwords_and_a_forwarded_header_changes_nothing"]),
+    ("/health: the peer address is read from the connection, not a forwarded header", f"{ACC}/main.py", '    host = request.client.host if request.client else ""\n    return host in',
+     '    host = request.headers.get("x-forwarded-for") or (request.client.host if request.client else "")\n    return host in',
+     [f"{API}::test_only_a_loopback_caller_is_told_about_default_passwords_and_a_forwarded_header_changes_nothing"]),
+    ("/health: the default-password answer is cached", f"{ACC}/main.py", '    if _dp_cache["at"] is not None and now - _dp_cache["at"] < DEFAULT_PASSWORDS_CACHE_S:\n        return _dp_cache["value"]\n', "",
+     [f"{API}::test_default_password_answer_is_cached_and_a_failure_is_not"]),
+    ("/health: a failed lookup is not cached", f"{ACC}/main.py", "    except Exception:  # noqa: BLE001\n        return None\n    _dp_cache.update(at=now, value=value)",
+     "    except Exception:  # noqa: BLE001\n        _dp_cache.update(at=now, value=None)\n        return None\n    _dp_cache.update(at=now, value=value)",
+     [f"{API}::test_default_password_answer_is_cached_and_a_failure_is_not"]),
+    ("login page shows no warning unless the server says true", f"{S}/app.js", "(await r.json()).default_passwords === true", "(await r.json()).default_passwords !== undefined",
+     [f"{B}::test_login_page_shows_no_password_warning_when_the_server_says_null_or_false"]),
+    ("an export nobody imports is dead code", f"{S}/logic.js", "function normLon(lon) {", "export function neverUsed() { return 1; }\nfunction normLon(lon) {", [f"{STATIC}::test_every_export_of_logic_and_svg_is_imported_by_another_app_file"]),
+    ("SST row cap", f"{S}/views.js", "      while (resp.truncated && rows.length < ctx.maxSeriesRows) {\n        resp = await page(resp.next_page);\n        if (mine !== seq) return;",
+     "      while (resp.truncated) {\n        resp = await page(resp.next_page);\n        if (mine !== seq) return;", [f"{B}::test_sst_stops_at_the_row_cap_says_so_and_asks_for_no_more_pages"]),
+    ("SST partial-draw notice", f"{S}/views.js", "      if (resp.truncated) out.append(h(\"p\", { class: \"notice\", role: \"status\" }, `Only the first ${rows.length} of ${r.n_rows_selected} cells",
+     "      if (false) out.append(h(\"p\", { class: \"notice\", role: \"status\" }, `Only the first ${rows.length} of ${r.n_rows_selected} cells", [f"{B}::test_sst_stops_at_the_row_cap_says_so_and_asks_for_no_more_pages"]),
+    ("series row cap", f"{S}/views.js", "  while (resp.truncated && rows.length < ctx.maxSeriesRows) {\n    resp = await page(resp.next_page);\n    if (cancelled()) return;",
+     "  while (resp.truncated) {\n    resp = await page(resp.next_page);\n    if (cancelled()) return;", [f"{B}::test_series_stops_at_the_row_cap_says_so_and_asks_for_no_more_pages"]),
+    ("series partial-draw notice", f"{S}/views.js", "  if (resp.truncated) out.append(h(\"p\", { class: \"notice\", role: \"status\" }, `Only the first ${rows.length} of ${r.n_rows_selected} rows",
+     "  if (false) out.append(h(\"p\", { class: \"notice\", role: \"status\" }, `Only the first ${rows.length} of ${r.n_rows_selected} rows", [f"{B}::test_series_stops_at_the_row_cap_says_so_and_asks_for_no_more_pages"]),
+    ("focus outline colour", f"{S}/style.css", "outline: 3px solid #b35c00", "outline: 3px solid #e08a00", [f"{CONTRAST}::test_chart_marks_and_the_focus_outline_have_at_least_3_to_1"]),
+    ("band outline", f"{S}/style.css", "stroke: #3f7aa0; stroke-width: 1; }", "stroke: none; stroke-width: 1; }", [f"{CONTRAST}::test_the_check_can_fail_the_colours_it_replaced_were_below_the_limit"]),
+    ("link target size in the map table (axe)", f"{S}/style.css", "table.list td a { display: inline-block; min-width: 24px; min-height: 24px; padding: 3px 6px; }", "table.list td a { }",
+     [f"{B}::test_axe_core_finds_no_wcag_a_or_aa_violation_in_any_view"]),
+    ("test helper `until` fails on a real page error", B, "            if not any(m in str(e) for m in BETWEEN_PAGES):\n", "            if False:\n",
+     [f"{B}::test_until_retries_a_navigation_but_nothing_else", f"{B}::test_until_fails_at_once_on_a_real_page_that_throws"]),
 ]
 
 

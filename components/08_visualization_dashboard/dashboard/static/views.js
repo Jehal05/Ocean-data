@@ -80,13 +80,6 @@ function axes(svg, xs, ys, labels) {
 
 const timeTick = (span) => (ms) => new Date(ms).toISOString().slice(0, span > 4 * 86400000 ? 10 : 16).replace("T", " ");
 
-function axisFor(values, n, r0, r1, extra = {}) {
-  const e = extent(values);
-  if (!e) return null;
-  const a = niceAxis(e[0], e[1], n);
-  return { ticks: a.ticks, scale: linear(a.min, a.max, r0, r1), min: a.min, max: a.max, ...extra };
-}
-
 async function datasetsOf(ctx, params) {
   const r = await get("/datasets", { page_size: ctx.pageSize, ...params });
   return r;
