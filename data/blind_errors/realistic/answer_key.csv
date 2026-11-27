@@ -1,0 +1,100 @@
+error_id,file,record_kind,record_index,level_index,cast_id,depth_m,variable,error_type,original_value,injected_value,expected_primary_test,notes,magnitude_band,expect
+R001,argo_synthetic_arabian_sea_2024_2025.nc,profile_index,1051,17,,,TEMP,spike,18.1603,3.1603,spike,2.50 x the shallow temperature threshold,well_above,detect
+R002,argo_synthetic_arabian_sea_2024_2025.nc,profile_index,425,99,,,TEMP,spike,2.4076,5.0076,spike,1.30 x the deep temperature threshold,just_above,detect
+R003,argo_synthetic_arabian_sea_2024_2025.nc,profile_index,678,54,,,TEMP,spike,8.9377,26.9377,spike,3.00 x the shallow temperature threshold,well_above,detect
+R004,argo_synthetic_arabian_sea_2024_2025.nc,profile_index,17,93,,,TEMP,spike,2.8067,5.4067,spike,1.30 x the deep temperature threshold,just_above,detect
+R005,argo_synthetic_arabian_sea_2024_2025.nc,profile_index,203,50,,,TEMP,spike,9.7656,-5.2344,spike,2.50 x the shallow temperature threshold,well_above,detect
+R006,argo_synthetic_arabian_sea_2024_2025.nc,profile_index,1066,88,,,TEMP,spike,3.4052,6.0052,spike,1.30 x the deep temperature threshold,just_above,detect
+R007,argo_synthetic_arabian_sea_2024_2025.nc,profile_index,930,14,,,PSAL,spike,35.7337,36.9937,spike,1.40 x the shallow salinity threshold,just_above,detect
+R008,argo_synthetic_arabian_sea_2024_2025.nc,profile_index,742,78,,,PSAL,spike,34.7846,35.2046,spike,1.40 x the deep salinity threshold,just_above,detect
+R009,argo_synthetic_arabian_sea_2024_2025.nc,profile_index,159,48,,,PSAL,spike,34.9985,33.1985,spike,2.00 x the shallow salinity threshold,just_above,detect
+R010,argo_synthetic_arabian_sea_2024_2025.nc,profile_index,348,98,,,PSAL,spike,34.7203,33.8203,spike,3.00 x the deep salinity threshold,just_above,detect
+R011,argo_synthetic_arabian_sea_2024_2025.nc,profile_index,149,52,,,PSAL,out_of_range,34.954,52.0,global_range,salinity valid_max exceeded,just_above_global,detect
+R012,argo_synthetic_arabian_sea_2024_2025.nc,profile_index,1010,49,,,TEMP,out_of_range,9.844,61.0,global_range,temperature valid_max exceeded,just_above_global,detect
+R013,argo_synthetic_arabian_sea_2024_2025.nc,profile_index,1201,59,,,PSAL,out_of_range,34.9084,52.0,global_range,salinity valid_max exceeded,just_above_global,detect
+R014,argo_synthetic_arabian_sea_2024_2025.nc,profile_index,197,64,,,TEMP,missing,7.272,(fill),missing_value,"value replaced by the fill value, flag left as 1",n/a,detect
+R015,argo_synthetic_arabian_sea_2024_2025.nc,profile_index,238,12,,,TEMP,missing,20.6795,(fill),missing_value,"value replaced by the fill value, flag left as 1",n/a,detect
+R016,argo_synthetic_arabian_sea_2024_2025.nc,profile_index,1187,88,,,TEMP,density_inversion,3.4109,4.2109,density_inversion,deep +0.8 degC,just_above,detect
+R017,argo_synthetic_arabian_sea_2024_2025.nc,profile_index,191,88,,,TEMP,density_inversion,3.4092,4.2092,density_inversion,deep +0.8 degC,just_above,detect
+R018,argo_synthetic_arabian_sea_2024_2025.nc,profile_index,1082,86,,,TEMP,density_inversion,3.7793,4.1793,density_inversion,deep +0.4 degC,just_above,detect
+R019,argo_synthetic_arabian_sea_2024_2025.nc,profile_index,913,,,,LATITUDE/LONGITUDE,position_on_land,"9.926,69.652","25.200,68.500",position_on_land,"Sindh, Pakistan",n/a,detect
+R020,argo_synthetic_arabian_sea_2024_2025.nc,profile_index,1206,,,,LATITUDE/LONGITUDE,position_on_land,"22.275,61.478","20.000,78.000",position_on_land,central India,n/a,detect
+R021,argo_synthetic_arabian_sea_2024_2025.nc,profile_index,1089,,,,LATITUDE/LONGITUDE,position_on_land,"15.021,57.358","57.358,15.021",position_on_land,latitude and longitude swapped: the swapped point is on land,swapped_pair,detect
+R022,argo_synthetic_arabian_sea_2024_2025.nc,profile_index,890,,,,JULD,timestamp_duplicate,148.017,138.1371,timestamp_monotonic,same time as the previous profile,n/a,detect
+R023,argo_synthetic_arabian_sea_2024_2025.nc,profile_index,331,,,,JULD,timestamp_jump_forward,143.8383,183.8383,timestamp_monotonic,"+40 days, later than its successor",n/a,detect
+R024,argo_synthetic_arabian_sea_2024_2025.nc,profile_index,34,,,,JULD,timestamp_non_monotonic,347.9872,317.9872,timestamp_monotonic,"-30 days, earlier than two predecessors",n/a,detect
+R025,argo_synthetic_arabian_sea_2024_2025.nc,profile_index,845,76,,,TEMP,stuck_value,5.3063,5.3063,none,17 identical values in a row,n/a,not_covered
+R026,argo_synthetic_arabian_sea_2024_2025.nc,profile_index,473,65,,,TEMP,stuck_value,7.0729,7.0729,none,11 identical values in a row,n/a,not_covered
+R027,argo_synthetic_arabian_sea_2024_2025.nc,profile_index,309,72,,,TEMP,stuck_value,6.118,6.118,none,12 identical values in a row,n/a,not_covered
+R028,argo_synthetic_arabian_sea_2024_2025.nc,profile_index,565,,,,PSAL,salinity_drift,,+0.15 psu over the last 25 cycles of SYN-A009,none,"float SYN-A009, profiles 565..589",n/a,not_covered
+R029,argo_synthetic_arabian_sea_2024_2025.nc,profile_index,814,,,,PRES,pressure_offset,,+4 dbar on every profile of SYN-A013 from cycle 11,none,"float SYN-A013, profiles 814..876",n/a,not_covered
+R030,argo_synthetic_bay_of_bengal_2024_2025.nc,profile_index,803,15,,,TEMP,spike,18.5857,3.5857,spike,2.50 x the shallow temperature threshold,well_above,detect
+R031,argo_synthetic_bay_of_bengal_2024_2025.nc,profile_index,24,93,,,TEMP,spike,2.8114,-2.1886,spike,2.50 x the deep temperature threshold,just_above,detect
+R032,argo_synthetic_bay_of_bengal_2024_2025.nc,profile_index,609,5,,,TEMP,spike,27.6209,12.6209,spike,2.50 x the shallow temperature threshold,well_above,detect
+R033,argo_synthetic_bay_of_bengal_2024_2025.nc,profile_index,542,91,,,TEMP,spike,2.9998,-3.0002,spike,3.00 x the deep temperature threshold,just_above,detect
+R034,argo_synthetic_bay_of_bengal_2024_2025.nc,profile_index,233,15,,,PSAL,spike,35.6127,34.3527,spike,1.40 x the shallow salinity threshold,just_above,detect
+R035,argo_synthetic_bay_of_bengal_2024_2025.nc,profile_index,987,94,,,PSAL,spike,34.7215,35.3215,spike,2.00 x the deep salinity threshold,just_above,detect
+R036,argo_synthetic_bay_of_bengal_2024_2025.nc,profile_index,730,8,,,PSAL,spike,35.6714,37.4714,spike,2.00 x the shallow salinity threshold,just_above,detect
+R037,argo_synthetic_bay_of_bengal_2024_2025.nc,profile_index,688,41,,,PSAL,out_of_range,35.1007,52.0,global_range,salinity valid_max exceeded,just_above_global,detect
+R038,argo_synthetic_bay_of_bengal_2024_2025.nc,profile_index,226,38,,,TEMP,out_of_range,12.3701,61.0,global_range,temperature valid_max exceeded,just_above_global,detect
+R039,argo_synthetic_bay_of_bengal_2024_2025.nc,profile_index,36,15,,,TEMP,missing,19.4102,(fill),missing_value,"value replaced by the fill value, flag left as 1",n/a,detect
+R040,argo_synthetic_bay_of_bengal_2024_2025.nc,profile_index,681,88,,,TEMP,density_inversion,3.414,3.814,density_inversion,deep +0.4 degC,just_above,detect
+R041,argo_synthetic_bay_of_bengal_2024_2025.nc,profile_index,931,79,,,TEMP,density_inversion,4.6111,5.8111,density_inversion,deep +1.2 degC,well_above,detect
+R042,argo_synthetic_bay_of_bengal_2024_2025.nc,profile_index,861,,,,LATITUDE/LONGITUDE,position_on_land,"10.184,82.582","25.200,68.500",position_on_land,"Sindh, Pakistan",n/a,detect
+R043,argo_synthetic_bay_of_bengal_2024_2025.nc,profile_index,534,,,,LATITUDE/LONGITUDE,position_invalid,"14.544,91.590","91.590,14.544",position_range,latitude and longitude swapped,just_above_global,detect
+R044,argo_synthetic_bay_of_bengal_2024_2025.nc,profile_index,9,,,,JULD,timestamp_duplicate,110.2042,99.9652,timestamp_monotonic,same time as the previous profile,n/a,detect
+R045,argo_synthetic_bay_of_bengal_2024_2025.nc,profile_index,47,,,,JULD,timestamp_jump_forward,500.0612,540.0612,timestamp_monotonic,"+40 days, later than its successor",n/a,detect
+R046,argo_synthetic_bay_of_bengal_2024_2025.nc,profile_index,357,,,,JULD,timestamp_non_monotonic,173.9238,143.9238,timestamp_monotonic,"-30 days, earlier than two predecessors",n/a,detect
+R047,argo_synthetic_bay_of_bengal_2024_2025.nc,profile_index,814,76,,,TEMP,stuck_value,5.0188,5.0188,none,14 identical values in a row,n/a,not_covered
+R048,argo_synthetic_bay_of_bengal_2024_2025.nc,profile_index,725,75,,,TEMP,stuck_value,5.1465,5.1465,none,11 identical values in a row,n/a,not_covered
+R049,argo_synthetic_bay_of_bengal_2024_2025.nc,profile_index,476,,,,PSAL,salinity_drift,,+0.15 psu over the last 25 cycles of SYN-B008,none,"float SYN-B008, profiles 476..500",n/a,not_covered
+R050,argo_synthetic_equatorial_2024_2025.nc,profile_index,134,35,,,TEMP,spike,13.0286,31.0286,spike,3.00 x the shallow temperature threshold,well_above,detect
+R051,argo_synthetic_equatorial_2024_2025.nc,profile_index,130,88,,,TEMP,spike,3.3995,8.3995,spike,2.50 x the deep temperature threshold,just_above,detect
+R052,argo_synthetic_equatorial_2024_2025.nc,profile_index,220,24,,,PSAL,spike,35.4452,37.2452,spike,2.00 x the shallow salinity threshold,just_above,detect
+R053,argo_synthetic_equatorial_2024_2025.nc,profile_index,110,9,,,PSAL,out_of_range,35.6383,52.0,global_range,salinity valid_max exceeded,just_above_global,detect
+R054,argo_synthetic_equatorial_2024_2025.nc,profile_index,72,6,,,TEMP,missing,28.4234,(fill),missing_value,"value replaced by the fill value, flag left as 1",n/a,detect
+R055,argo_synthetic_equatorial_2024_2025.nc,profile_index,14,78,,,TEMP,density_inversion,4.7919,5.1919,density_inversion,deep +0.4 degC,just_above,detect
+R056,argo_synthetic_equatorial_2024_2025.nc,profile_index,124,79,,,TEMP,stuck_value,4.6866,4.6866,none,12 identical values in a row,n/a,not_covered
+R057,ctd_casts_synthetic_cruise01_2024.csv,csv_data_row,4800,102,SYN-C119,360.0,temp_C,spike,10.6942,28.6942,spike,3.00 x the threshold,just_above,detect
+R058,ctd_casts_synthetic_cruise01_2024.csv,csv_data_row,6416,152,SYN-C125,720.0,temp_C,spike,6.079,2.079,spike,2.00 x the threshold,just_above,detect
+R059,ctd_casts_synthetic_cruise01_2024.csv,csv_data_row,3999,84,SYN-C116,270.0,sal_PSU,out_of_range,35.3526,52.0,global_range,salinity valid_max exceeded,just_above_global,detect
+R060,ctd_casts_synthetic_cruise01_2024.csv,csv_data_row,3431,38,SYN-C114,76.0,temp_C,missing,25.3502,(empty),missing_value,empty cell,n/a,detect
+R061,ctd_casts_synthetic_cruise01_2024.csv,csv_data_row,3005,134,SYN-C112,540.0,temp_C,density_inversion,7.9406,8.7406,density_inversion,deep +0.8 degC,just_above,detect
+R062,ctd_casts_synthetic_cruise02_2024.csv,csv_data_row,504,22,SYN-C203,44.0,temp_C,spike,25.7754,7.7754,spike,3.00 x the threshold,just_above,detect
+R063,ctd_casts_synthetic_cruise02_2024.csv,csv_data_row,4444,106,SYN-C219,380.0,temp_C,missing,10.1523,(empty),missing_value,empty cell,n/a,detect
+R064,ctd_casts_synthetic_cruise03_2024.csv,csv_data_row,5524,106,SYN-C319,380.0,temp_C,spike,10.1025,17.9025,spike,1.30 x the threshold,just_above,detect
+R065,ctd_casts_synthetic_cruise03_2024.csv,csv_data_row,7274,50,SYN-C325,100.0,sal_PSU,out_of_range,35.5874,52.0,global_range,salinity valid_max exceeded,just_above_global,detect
+R066,ctd_casts_synthetic_cruise03_2024.csv,csv_data_row,2573,165,SYN-C309,850.0,temp_C,density_inversion,4.9437,5.7437,density_inversion,deep +0.8 degC,just_above,detect
+R067,ctd_casts_synthetic_cruise04_2025.csv,csv_data_row,7317,11,SYN-C427,22.0,temp_C,spike,24.9291,32.7291,spike,1.30 x the threshold,just_above,detect
+R068,ctd_casts_synthetic_cruise04_2025.csv,csv_data_row,4356,141,SYN-C416,610.0,temp_C,spike,7.2236,4.6236,spike,1.30 x the threshold,just_above,detect
+R069,ctd_casts_synthetic_cruise04_2025.csv,csv_data_row,913,70,SYN-C404,200.0,temp_C,missing,14.5157,(empty),missing_value,empty cell,n/a,detect
+R070,ctd_casts_synthetic_cruise04_2025.csv,csv_data_row,1543,138,SYN-C406,580.0,temp_C,density_inversion,7.4995,8.2995,density_inversion,deep +0.8 degC,just_above,detect
+R071,ctd_casts_synthetic_cruise05_2025.csv,csv_data_row,316,55,SYN-C502,125.0,temp_C,spike,16.8993,28.8993,spike,2.00 x the threshold,just_above,detect
+R072,ctd_casts_synthetic_cruise05_2025.csv,csv_data_row,1633,67,SYN-C507,185.0,sal_PSU,out_of_range,35.3466,52.0,global_range,salinity valid_max exceeded,just_above_global,detect
+R073,ctd_casts_synthetic_cruise06_2025.csv,csv_data_row,3143,66,SYN-C618,180.0,temp_C,spike,15.3711,33.3711,spike,3.00 x the threshold,just_above,detect
+R074,buoy_met_wave_synthetic_AS01_2024_2025.csv,csv_data_row,4661,,,,hs_m,spike,2.36,6.36,spike,2.00 x 2.0,just_above,detect
+R075,buoy_met_wave_synthetic_AS01_2024_2025.csv,csv_data_row,14290,,,,sst_C,spike,27.28,29.38,spike,1.40 x 1.5,just_above,detect
+R076,buoy_met_wave_synthetic_AS01_2024_2025.csv,csv_data_row,12632,,,,wspd_ms,spike,5.92,25.92,spike,2.00 x 10.0,just_above,detect
+R077,buoy_met_wave_synthetic_AS01_2024_2025.csv,csv_data_row,5073,,,,airtemp_C,spike,26.5,34.5,spike,2.00 x 4.0,just_above,detect
+R078,buoy_met_wave_synthetic_AS01_2024_2025.csv,csv_data_row,1767,,,,wspd_ms,out_of_range,2.79,65.0,global_range,wind speed valid_max exceeded,just_above_global,detect
+R079,buoy_met_wave_synthetic_AS01_2024_2025.csv,csv_data_row,3473,,,,lat/lon,position_on_land,"15.0,68.0","25.200,68.500",position_on_land,"Sindh, Pakistan",n/a,detect
+R080,buoy_met_wave_synthetic_AS01_2024_2025.csv,csv_data_row,5785,,,,time_utc,timestamp_duplicate,2024-09-05T02:00:00Z,2024-09-05T01:00:00Z,timestamp_monotonic,,n/a,detect
+R081,buoy_met_wave_synthetic_AS01_2024_2025.csv,csv_data_row,8829,,,,rh_pct,stuck_value,62.0,62.0,none,relative humidity stuck for 41 hours,n/a,not_covered
+R082,buoy_met_wave_synthetic_AS02_2024_2025.csv,csv_data_row,13548,,,,hs_m,spike,2.42,6.42,spike,2.00 x 2.0,just_above,detect
+R083,buoy_met_wave_synthetic_AS02_2024_2025.csv,csv_data_row,3591,,,,sst_C,spike,27.3,31.8,spike,3.00 x 1.5,just_above,detect
+R084,buoy_met_wave_synthetic_AS02_2024_2025.csv,csv_data_row,8172,,,,wspd_ms,spike,4.89,24.89,spike,2.00 x 10.0,just_above,detect
+R085,buoy_met_wave_synthetic_AS02_2024_2025.csv,csv_data_row,2474,,,,wspd_ms,out_of_range,4.11,65.0,global_range,wind speed valid_max exceeded,just_above_global,detect
+R086,buoy_met_wave_synthetic_AS02_2024_2025.csv,csv_data_row,2633,,,,lat/lon,position_invalid,19.0,90.5,position_range,latitude beyond 90 by 0.5,just_above_global,detect
+R087,buoy_met_wave_synthetic_AS02_2024_2025.csv,csv_data_row,4945,,,,time_utc,timestamp_jump_forward,2024-07-31T21:00:00Z,2024-08-17T13:00:00Z,timestamp_monotonic,+400 h,n/a,detect
+R088,buoy_met_wave_synthetic_AS02_2024_2025.csv,csv_data_row,8641,,,,sst_C,sensor_drift,,+1.6 degC by the end,none,slow warm drift of the sea temperature sensor,n/a,not_covered
+R089,buoy_met_wave_synthetic_AS03_2024_2025.csv,csv_data_row,2494,,,,hs_m,spike,1.33,7.33,spike,3.00 x 2.0,just_above,detect
+R090,buoy_met_wave_synthetic_AS03_2024_2025.csv,csv_data_row,6557,,,,sst_C,spike,28.67,30.77,spike,1.40 x 1.5,just_above,detect
+R091,buoy_met_wave_synthetic_AS03_2024_2025.csv,csv_data_row,1137,,,,wspd_ms,out_of_range,3.58,65.0,global_range,wind speed valid_max exceeded,just_above_global,detect
+R092,buoy_met_wave_synthetic_BB01_2024_2025.csv,csv_data_row,14732,,,,hs_m,spike,0.65,3.45,spike,1.40 x 2.0,just_above,detect
+R093,buoy_met_wave_synthetic_BB01_2024_2025.csv,csv_data_row,7914,,,,sst_C,spike,27.68,32.18,spike,3.00 x 1.5,just_above,detect
+R094,buoy_met_wave_synthetic_BB01_2024_2025.csv,csv_data_row,8629,,,,wspd_ms,spike,4.58,18.58,spike,1.40 x 10.0,just_above,detect
+R095,buoy_met_wave_synthetic_BB01_2024_2025.csv,csv_data_row,9717,,,,wspd_ms,out_of_range,1.59,65.0,global_range,wind speed valid_max exceeded,just_above_global,detect
+R096,buoy_met_wave_synthetic_BB01_2024_2025.csv,csv_data_row,4730,,,,time_utc,timestamp_duplicate,2024-07-18T14:00:00Z,2024-07-18T13:00:00Z,timestamp_monotonic,,n/a,detect
+R097,buoy_met_wave_synthetic_BB01_2024_2025.csv,csv_data_row,8603,,,,rh_pct,stuck_value,73.9,73.9,none,relative humidity stuck for 41 hours,n/a,not_covered
+R098,buoy_met_wave_synthetic_BB02_2024_2025.csv,csv_data_row,13880,,,,hs_m,spike,2.04,8.04,spike,3.00 x 2.0,just_above,detect
+R099,buoy_met_wave_synthetic_BB02_2024_2025.csv,csv_data_row,15509,,,,sst_C,spike,28.21,32.71,spike,3.00 x 1.5,just_above,detect

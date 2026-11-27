@@ -24,6 +24,8 @@ CONTRAST = "tests/unit/test_dashboard_contrast.py"
 NODE = "tests/js/logic.test.mjs"
 ACC = "components/07_data_access_api/access_api"
 API = "tests/integration/test_access_api.py"
+G = "components/01_data_sources/realistic_data.py"
+R = "tests/unit/test_realistic_data.py"
 
 # (name, file, old text (must occur once), new text, guarding tests: pytest ids, or "node")
 MUTATIONS = [
@@ -162,6 +164,22 @@ MUTATIONS = [
     ("a gap strip is placed half a bin each side", f"{S}/logic.js", "out.push([times[from] - step / 2, times[i - 1] + step / 2]);", "out.push([times[from], times[i - 1]]);", [NODE]),
     ("a brush dragged right to left is put in order", f"{S}/logic.js", "return a <= b ? [a, b] : [b, a];", "return [a, b];", [NODE]),
     ("the system theme follows the system", f"{S}/logic.js", "(choice === \"dark\" ? true : choice === \"light\" ? false : Boolean(systemDark))", "(choice === \"dark\" ? true : choice === \"light\" ? false : false)", [NODE]),
+    # ---- the realistic synthetic data set (components/01_data_sources/realistic_data.py) ----
+    ("realistic data: Argo files keep is_synthetic", G, '"is_synthetic": "true", "Conventions": "Argo-3.1 (style only)"', '"Conventions": "Argo-3.1 (style only)"', [f"{R}::test_every_file_says_it_is_synthetic"]),
+    ("realistic data: one fixed seed", G, "    rng = np.random.default_rng(SEED)\n    KEY.clear()", "    rng = np.random.default_rng()\n    KEY.clear()", [f"{R}::test_same_seed_same_sha256_for_every_file_and_the_answer_key"]),
+    ("realistic data: platform ids are fictional", G, 'wmo = f"SYN-{prefix}{f + 1:03d}"', 'wmo = f"{2900000 + f}"', [f"{R}::test_no_real_identifiers_only_fictional_ones"]),
+    ("realistic data: flag 2 rate in its band", G, '"2": 0.030}', '"2": 0.0005}', [f"{R}::test_argo_provider_flag_rates_are_in_the_bands"]),
+    ("realistic data: profiles are made statically stable", G, "return temp, remove_inversions(temp, sal, z, lat, lon)", "return temp, sal", [f"{R}::test_argo_profiles_are_stably_stratified_except_where_a_fault_was_injected"]),
+    ("realistic data: deep water is cold", G, "t_deep = 1.5 + 3.5 *", "t_deep = 4.5 + 3.5 *", [f"{R}::test_ship_ctd_deep_water_is_cold_and_casts_go_deep"]),
+    ("realistic data: the SST file stays compressed (size budget)", G, '"zlib": True, "complevel": 4, "shuffle": True, "chunksizes"', '"zlib": False, "chunksizes"', [f"{R}::test_size_and_runtime_budget"]),
+    ("realistic data: fault labels never leak into a data file", G, '            fh.write("# units: depth_m=m,', '            fh.write("# injected spike\\n# units: depth_m=m,', [f"{R}::test_the_labels_of_the_faults_are_never_inside_the_data_files"]),
+    ("realistic data: monsoon wind reversal", G, "u = (sw * 8.5 * np.cos", "u = (-sw * 8.5 * np.cos", [f"{R}::test_buoys_monsoon_reversal_cyclones_outages_and_the_silent_buoy"]),
+    ("realistic data: at most one cyclone per basin per year", G, '("2024-05-24T06:00", {"BB01": 0.45, "BB02": 1.0}),', '("2024-05-24T06:00", {"BB01": 0.45, "BB02": 1.0}), ("2024-09-24T06:00", {"BB02": 1.0}),', [f"{R}::test_buoys_monsoon_reversal_cyclones_outages_and_the_silent_buoy"]),
+    ("realistic data: one buoy silent for three weeks", G, "keep[a:a + 21 * 24] = False", "keep[a:a + 2 * 24] = False", [f"{R}::test_buoys_monsoon_reversal_cyclones_outages_and_the_silent_buoy"]),
+    ("realistic data: summer upwelling off Somalia", G, "up = (4.0 * sw", "up = (0.0 * sw", [f"{R}::test_sst_monsoon_cycle_warm_pool_upwelling_and_cloud_gaps"]),
+    ("realistic data: spring warm pool above 30 degC", G, "warm_pool = 1.0 * gauss", "warm_pool = 0.0 * gauss", [f"{R}::test_sst_monsoon_cycle_warm_pool_upwelling_and_cloud_gaps"]),
+    ("realistic data: Gulf outflow tongue near 250 m", G, "sal = sal + 0.55 * np.exp(-d_gulf / 10.0) * pg", "sal = sal + 0.0 * np.exp(-d_gulf / 10.0) * pg", [f"{R}::test_water_masses_and_the_deep_ocean"]),
+    ("realistic data: bathymetry has ridges", G, "depth = depth - h * ridge", "depth = depth - 0.0 * h * ridge", [f"{R}::test_bathymetry_has_shelf_slope_and_ridges"]),
 ]
 
 

@@ -277,8 +277,18 @@ def make_bathymetry(out: Path, rng):
 
 def main():
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--out", default="data/raw", type=Path)
+    ap.add_argument("--profile", choices=("small", "realistic"), default="small",
+                    help="small = the 90-day demo set used by unit tests (data/raw); realistic = 2 years, 40 floats, 6 cruises, 5 buoys (data/realistic)")
+    ap.add_argument("--out", type=Path, default=None, help="default: data/raw (small) or data/realistic (realistic)")
     args = ap.parse_args()
+    if args.profile == "realistic":
+        import importlib.util
+        spec = importlib.util.spec_from_file_location("realistic_data", Path(__file__).with_name("realistic_data.py"))
+        mod = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(mod)
+        mod.run(args.out or Path("data/realistic"), Path("data/blind_errors/realistic/answer_key.csv"))
+        return
+    args.out = args.out or Path("data/raw")
     rng = np.random.default_rng(SEED)
     for fn in (make_argo, make_ship_ctd, make_sst, make_buoy, make_bathymetry):
         path, *info = fn(args.out, rng)

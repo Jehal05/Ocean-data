@@ -17,7 +17,7 @@
  {
   "check": "dashboard logic (Node, hand-computed values)",
   "status": "PASS",
-  "evidence": "# duration_ms 62.172296"
+  "evidence": "# duration_ms 86.057454"
  },
  {
   "check": "static rules: no innerHTML/eval/inline script or style/CDN, no dead exports or declarations",
@@ -30,6 +30,11 @@
   "evidence": ".........                                                                [100%]"
  },
  {
+  "check": "realistic synthetic data: deterministic, labelled SYNTHETIC, physical sanity, flag-rate bands, no real ids, size and time budget",
+  "status": "PASS",
+  "evidence": "..................                                                       [100%]"
+ },
+ {
   "check": "axe-core: no WCAG A/AA violation in any view",
   "status": "PASS",
   "evidence": "ran in the browser tests: ....                                                                     [100%]"
@@ -38,6 +43,11 @@
   "check": "browser tests: login, views, notices, hostile text, CSP, CSRF, a11y (headless Chrome, real stack)",
   "status": "PASS",
   "evidence": "....                                                                     [100%]"
+ },
+ {
+  "check": "realistic data through ingest + QC: every covered injected fault flagged; uncovered ones reported",
+  "status": "PASS",
+  "evidence": ".....                                                                    [100%]"
  },
  {
   "check": "mutation check: every dashboard safeguard switched off is noticed",

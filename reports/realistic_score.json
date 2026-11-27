@@ -1,0 +1,159 @@
+{
+ "observations": {
+  "argo_synthetic_equatorial_2024_2025": 299,
+  "argo_synthetic_bay_of_bengal_2024_2025": 949,
+  "argo_synthetic_arabian_sea_2024_2025": 1349,
+  "buoy_met_wave_synthetic_as03_2024_2025": 17341,
+  "sst_synthetic_0p25deg_2024_2025": 731,
+  "ctd_casts_synthetic_cruise01_2024": 26,
+  "buoy_met_wave_synthetic_as02_2024_2025": 17211,
+  "ctd_casts_synthetic_cruise03_2024": 30,
+  "buoy_met_wave_synthetic_as01_2024_2025": 17186,
+  "bathymetry_synthetic_0p1deg_indian_ocean": 1,
+  "buoy_met_wave_synthetic_bb01_2024_2025": 16778,
+  "ctd_casts_synthetic_cruise05_2025": 24,
+  "ctd_casts_synthetic_cruise06_2025": 20,
+  "buoy_met_wave_synthetic_bb02_2024_2025": 17303,
+  "ctd_casts_synthetic_cruise02_2024": 22,
+  "ctd_casts_synthetic_cruise04_2025": 28
+ },
+ "flags_by_value": {
+  "buoy_met_wave_synthetic_as03_2024_2025": {
+   "3": 3,
+   "9": 277
+  },
+  "argo_synthetic_equatorial_2024_2025": {
+   "2": 2050,
+   "3": 983,
+   "4": 366,
+   "9": 37
+  },
+  "ctd_casts_synthetic_cruise04_2025": {
+   "3": 12,
+   "4": 14,
+   "9": 1
+  },
+  "argo_synthetic_arabian_sea_2024_2025": {
+   "2": 9201,
+   "3": 4905,
+   "4": 1657,
+   "9": 294
+  },
+  "ctd_casts_synthetic_cruise03_2024": {
+   "3": 11,
+   "4": 19
+  },
+  "argo_synthetic_bay_of_bengal_2024_2025": {
+   "2": 6524,
+   "3": 3258,
+   "4": 1197,
+   "9": 175
+  },
+  "ctd_casts_synthetic_cruise02_2024": {
+   "3": 4,
+   "4": 11,
+   "9": 1
+  },
+  "buoy_met_wave_synthetic_bb01_2024_2025": {
+   "3": 4,
+   "4": 1,
+   "9": 271
+  },
+  "ctd_casts_synthetic_cruise01_2024": {
+   "3": 14,
+   "4": 11,
+   "9": 1
+  },
+  "buoy_met_wave_synthetic_bb02_2024_2025": {
+   "3": 2,
+   "9": 231
+  },
+  "ctd_casts_synthetic_cruise05_2025": {
+   "3": 6,
+   "4": 12
+  },
+  "ctd_casts_synthetic_cruise06_2025": {
+   "3": 4,
+   "4": 6
+  },
+  "buoy_met_wave_synthetic_as01_2024_2025": {
+   "3": 5,
+   "4": 2,
+   "9": 344
+  },
+  "buoy_met_wave_synthetic_as02_2024_2025": {
+   "3": 4,
+   "4": 2,
+   "9": 416
+  }
+ },
+ "per_type": {
+  "spike": {
+   "total": 42,
+   "detected": 42
+  },
+  "out_of_range": {
+   "total": 13,
+   "detected": 13
+  },
+  "missing": {
+   "total": 7,
+   "detected": 7
+  },
+  "density_inversion": {
+   "total": 9,
+   "detected": 9
+  },
+  "position_on_land": {
+   "total": 5,
+   "detected": 5
+  },
+  "timestamp_duplicate": {
+   "total": 4,
+   "detected": 4
+  },
+  "timestamp_jump_forward": {
+   "total": 3,
+   "detected": 3
+  },
+  "timestamp_non_monotonic": {
+   "total": 2,
+   "detected": 2
+  },
+  "position_invalid": {
+   "total": 2,
+   "detected": 2
+  }
+ },
+ "recall": "87/87",
+ "misses": [],
+ "not_covered_by_qc": {
+  "stuck_value": 8,
+  "salinity_drift": 2,
+  "pressure_offset": 1,
+  "sensor_drift": 1
+ },
+ "unexpected_flag_3_4_by_test": {
+  "provider_flag": 12227,
+  "density_inversion": 111,
+  "timestamp_monotonic": 68
+ },
+ "ingest_seconds": {
+  "argo_synthetic_arabian_sea_2024_2025.nc": 1.71,
+  "argo_synthetic_bay_of_bengal_2024_2025.nc": 0.58,
+  "argo_synthetic_equatorial_2024_2025.nc": 0.24,
+  "bathymetry_synthetic_0p1deg_indian_ocean.nc": 0.18,
+  "buoy_met_wave_synthetic_AS01_2024_2025.csv": 3.45,
+  "buoy_met_wave_synthetic_AS02_2024_2025.csv": 3.62,
+  "buoy_met_wave_synthetic_AS03_2024_2025.csv": 3.56,
+  "buoy_met_wave_synthetic_BB01_2024_2025.csv": 3.23,
+  "buoy_met_wave_synthetic_BB02_2024_2025.csv": 3.58,
+  "ctd_casts_synthetic_cruise01_2024.csv": 0.1,
+  "ctd_casts_synthetic_cruise02_2024.csv": 0.09,
+  "ctd_casts_synthetic_cruise03_2024.csv": 0.12,
+  "ctd_casts_synthetic_cruise04_2025.csv": 0.1,
+  "ctd_casts_synthetic_cruise05_2025.csv": 0.09,
+  "ctd_casts_synthetic_cruise06_2025.csv": 0.11,
+  "sst_synthetic_0p25deg_2024_2025.nc": 33.66
+ }
+}

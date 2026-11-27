@@ -5,7 +5,7 @@ real review flow, products built, and the access API served by uvicorn. One comm
     python3 tests/dash_stack.py [--port 18080] [--tiny]
 
 --tiny adds the small hand-made datasets (hostile names, a stale product, a grid that crosses 180 degrees) that the browser tests check by hand.
-Without it, only the five synthetic files in data/raw are loaded: that is the demo. Prints READY <url> when it is up; stop with Ctrl-C."""
+Without it, every file of the realistic set in data/realistic is loaded (--data small: the five files in data/raw): that is the demo. Prints READY <url> when it is up; stop with Ctrl-C."""
 from __future__ import annotations
 
 import argparse
@@ -32,6 +32,8 @@ def main() -> int:
     ap = argparse.ArgumentParser()
     ap.add_argument("--port", type=int, default=18080)
     ap.add_argument("--tiny", action="store_true")
+    ap.add_argument("--data", choices=("small", "realistic"), default=None,
+                    help="small = the five files in data/raw; realistic = every file in data/realistic (default, except with --tiny)")
     args = ap.parse_args()
     import boto3
     from _pytest.monkeypatch import MonkeyPatch
@@ -70,8 +72,12 @@ def main() -> int:
     world.review = A.reviewer_client(tmp, mp)
     for k, v in (("S3_ENDPOINT", endpoint), ("S3_ACCESS_KEY", "testing"), ("S3_SECRET_KEY", "testing")):
         os.environ[k] = v
-    for f in (A.ARGO, A.CTD, A.BUOY, A.SST, A.BATHY):
+    data = args.data or ("small" if args.tiny else "realistic")
+    files = [A.ARGO, A.CTD, A.BUOY, A.SST, A.BATHY] if data == "small" else sorted(p for p in (ROOT / "data/realistic").rglob("*") if p.suffix in (".nc", ".csv") and p.name != "answer_key.csv")
+    t0 = time.time()
+    for f in files:
         A.publish(world, f)
+    print(f"published {len(files)} files in {time.time() - t0:.0f} s", flush=True)
     if args.tiny:
         A.register(A.tiny_series(), "hostile")
         A.register(A.tiny_profiles(), "stale_target")
@@ -79,7 +85,10 @@ def main() -> int:
         A.register(A.tiny_sst(lon=(179.0, -179.0)), "antimeridian")
     os.environ["PRODUCTS_DATABASE_URL"] = db_stub.PRODUCTS_URL
     from scats_products import build_all
-    bad = [r for r in build_all() if r.status == "failed"]
+    t0 = time.time()
+    built = build_all()
+    print(f"built {len(built)} products in {time.time() - t0:.0f} s", flush=True)
+    bad = [r for r in built if r.status == "failed"]
     if bad:
         print("product build failed:", [r.detail for r in bad], file=sys.stderr)
         stop()

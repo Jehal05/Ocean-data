@@ -71,3 +71,18 @@ One dashboard safeguard is switched off at a time; the guarding tests must then 
 | a gap strip is placed half a bin each side | yes | node test: not ok 26 - runs of empty bins become gap spans of half a bin on each side |
 | a brush dragged right to left is put in order | yes | node test: not ok 24 - a brush gives the time range between two pixel positions, earliest first, kept inside the axis |
 | the system theme follows the system | yes | node test: not ok 29 - the theme choice cycles system, light, dark and an unknown choice falls back to system |
+| realistic data: Argo files keep is_synthetic | yes | tests/unit/test_realistic_data.py::test_every_file_says_it_is_synthetic |
+| realistic data: one fixed seed | yes | tests/unit/test_realistic_data.py::test_same_seed_same_sha256_for_every_file_and_the_answer_key |
+| realistic data: platform ids are fictional | yes | tests/unit/test_realistic_data.py::test_no_real_identifiers_only_fictional_ones |
+| realistic data: flag 2 rate in its band | yes | tests/unit/test_realistic_data.py::test_argo_provider_flag_rates_are_in_the_bands |
+| realistic data: profiles are made statically stable | yes | tests/unit/test_realistic_data.py::test_argo_profiles_are_stably_stratified_except_where_a_fault_was_injected |
+| realistic data: deep water is cold | yes | tests/unit/test_realistic_data.py::test_ship_ctd_deep_water_is_cold_and_casts_go_deep |
+| realistic data: the SST file stays compressed (size budget) | yes | tests/unit/test_realistic_data.py::test_size_and_runtime_budget |
+| realistic data: fault labels never leak into a data file | yes | tests/unit/test_realistic_data.py::test_the_labels_of_the_faults_are_never_inside_the_data_files |
+| realistic data: monsoon wind reversal | yes | tests/unit/test_realistic_data.py::test_buoys_monsoon_reversal_cyclones_outages_and_the_silent_buoy |
+| realistic data: at most one cyclone per basin per year | yes | tests/unit/test_realistic_data.py::test_buoys_monsoon_reversal_cyclones_outages_and_the_silent_buoy |
+| realistic data: one buoy silent for three weeks | yes | tests/unit/test_realistic_data.py::test_buoys_monsoon_reversal_cyclones_outages_and_the_silent_buoy |
+| realistic data: summer upwelling off Somalia | yes | tests/unit/test_realistic_data.py::test_sst_monsoon_cycle_warm_pool_upwelling_and_cloud_gaps |
+| realistic data: spring warm pool above 30 degC | yes | tests/unit/test_realistic_data.py::test_sst_monsoon_cycle_warm_pool_upwelling_and_cloud_gaps |
+| realistic data: Gulf outflow tongue near 250 m | yes | tests/unit/test_realistic_data.py::test_water_masses_and_the_deep_ocean |
+| realistic data: bathymetry has ridges | yes | tests/unit/test_realistic_data.py::test_bathymetry_has_shelf_slope_and_ridges |

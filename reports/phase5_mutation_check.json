@@ -678,6 +678,156 @@
    "guarding_tests": [
     "tests/js/logic.test.mjs"
    ]
+  },
+  {
+   "mutation": "realistic data: Argo files keep is_synthetic",
+   "file": "components/01_data_sources/realistic_data.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/unit/test_realistic_data.py::test_every_file_says_it_is_synthetic",
+   "guarding_tests": [
+    "tests/unit/test_realistic_data.py::test_every_file_says_it_is_synthetic"
+   ]
+  },
+  {
+   "mutation": "realistic data: one fixed seed",
+   "file": "components/01_data_sources/realistic_data.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/unit/test_realistic_data.py::test_same_seed_same_sha256_for_every_file_and_the_answer_key",
+   "guarding_tests": [
+    "tests/unit/test_realistic_data.py::test_same_seed_same_sha256_for_every_file_and_the_answer_key"
+   ]
+  },
+  {
+   "mutation": "realistic data: platform ids are fictional",
+   "file": "components/01_data_sources/realistic_data.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/unit/test_realistic_data.py::test_no_real_identifiers_only_fictional_ones",
+   "guarding_tests": [
+    "tests/unit/test_realistic_data.py::test_no_real_identifiers_only_fictional_ones"
+   ]
+  },
+  {
+   "mutation": "realistic data: flag 2 rate in its band",
+   "file": "components/01_data_sources/realistic_data.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/unit/test_realistic_data.py::test_argo_provider_flag_rates_are_in_the_bands",
+   "guarding_tests": [
+    "tests/unit/test_realistic_data.py::test_argo_provider_flag_rates_are_in_the_bands"
+   ]
+  },
+  {
+   "mutation": "realistic data: profiles are made statically stable",
+   "file": "components/01_data_sources/realistic_data.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/unit/test_realistic_data.py::test_argo_profiles_are_stably_stratified_except_where_a_fault_was_injected",
+   "guarding_tests": [
+    "tests/unit/test_realistic_data.py::test_argo_profiles_are_stably_stratified_except_where_a_fault_was_injected"
+   ]
+  },
+  {
+   "mutation": "realistic data: deep water is cold",
+   "file": "components/01_data_sources/realistic_data.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/unit/test_realistic_data.py::test_ship_ctd_deep_water_is_cold_and_casts_go_deep",
+   "guarding_tests": [
+    "tests/unit/test_realistic_data.py::test_ship_ctd_deep_water_is_cold_and_casts_go_deep"
+   ]
+  },
+  {
+   "mutation": "realistic data: the SST file stays compressed (size budget)",
+   "file": "components/01_data_sources/realistic_data.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/unit/test_realistic_data.py::test_size_and_runtime_budget",
+   "guarding_tests": [
+    "tests/unit/test_realistic_data.py::test_size_and_runtime_budget"
+   ]
+  },
+  {
+   "mutation": "realistic data: fault labels never leak into a data file",
+   "file": "components/01_data_sources/realistic_data.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/unit/test_realistic_data.py::test_the_labels_of_the_faults_are_never_inside_the_data_files",
+   "guarding_tests": [
+    "tests/unit/test_realistic_data.py::test_the_labels_of_the_faults_are_never_inside_the_data_files"
+   ]
+  },
+  {
+   "mutation": "realistic data: monsoon wind reversal",
+   "file": "components/01_data_sources/realistic_data.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/unit/test_realistic_data.py::test_buoys_monsoon_reversal_cyclones_outages_and_the_silent_buoy",
+   "guarding_tests": [
+    "tests/unit/test_realistic_data.py::test_buoys_monsoon_reversal_cyclones_outages_and_the_silent_buoy"
+   ]
+  },
+  {
+   "mutation": "realistic data: at most one cyclone per basin per year",
+   "file": "components/01_data_sources/realistic_data.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/unit/test_realistic_data.py::test_buoys_monsoon_reversal_cyclones_outages_and_the_silent_buoy",
+   "guarding_tests": [
+    "tests/unit/test_realistic_data.py::test_buoys_monsoon_reversal_cyclones_outages_and_the_silent_buoy"
+   ]
+  },
+  {
+   "mutation": "realistic data: one buoy silent for three weeks",
+   "file": "components/01_data_sources/realistic_data.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/unit/test_realistic_data.py::test_buoys_monsoon_reversal_cyclones_outages_and_the_silent_buoy",
+   "guarding_tests": [
+    "tests/unit/test_realistic_data.py::test_buoys_monsoon_reversal_cyclones_outages_and_the_silent_buoy"
+   ]
+  },
+  {
+   "mutation": "realistic data: summer upwelling off Somalia",
+   "file": "components/01_data_sources/realistic_data.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/unit/test_realistic_data.py::test_sst_monsoon_cycle_warm_pool_upwelling_and_cloud_gaps",
+   "guarding_tests": [
+    "tests/unit/test_realistic_data.py::test_sst_monsoon_cycle_warm_pool_upwelling_and_cloud_gaps"
+   ]
+  },
+  {
+   "mutation": "realistic data: spring warm pool above 30 degC",
+   "file": "components/01_data_sources/realistic_data.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/unit/test_realistic_data.py::test_sst_monsoon_cycle_warm_pool_upwelling_and_cloud_gaps",
+   "guarding_tests": [
+    "tests/unit/test_realistic_data.py::test_sst_monsoon_cycle_warm_pool_upwelling_and_cloud_gaps"
+   ]
+  },
+  {
+   "mutation": "realistic data: Gulf outflow tongue near 250 m",
+   "file": "components/01_data_sources/realistic_data.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/unit/test_realistic_data.py::test_water_masses_and_the_deep_ocean",
+   "guarding_tests": [
+    "tests/unit/test_realistic_data.py::test_water_masses_and_the_deep_ocean"
+   ]
+  },
+  {
+   "mutation": "realistic data: bathymetry has ridges",
+   "file": "components/01_data_sources/realistic_data.py",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/unit/test_realistic_data.py::test_bathymetry_has_shelf_slope_and_ridges",
+   "guarding_tests": [
+    "tests/unit/test_realistic_data.py::test_bathymetry_has_shelf_slope_and_ridges"
+   ]
   }
  ],
  "all_caught": true

@@ -18,30 +18,46 @@ PORT = 18092
 BASE = f"http://127.0.0.1:{PORT}"
 OUT = ROOT / "docs/screens"
 CHROME = os.getenv("SCATS_CHROME") or shutil.which("google-chrome") or shutil.which("chromium")
-SST = "sst_monthly_mean__sst_synthetic_0p25deg_2025q1"
+SST = "sst_monthly_mean__sst_synthetic_0p25deg_2024_2025"        # the realistic set (data/realistic): two years, 16 datasets
+ARGO = "argo_synthetic_arabian_sea_2024_2025"
+BUOY = "series_daily__buoy_met_wave_synthetic_as02_2024_2025"     # the access API refuses a request longer than 366 days, so every view is given a date range
 
 
 def prepare(p, view):
     """Put each view in a state that shows what it is for."""
     p.goto(f"{BASE}/app#/{view}" + (f"?key={SST}" if view == "sst" else ""))
-    wait = {"map": "#map-count", "profile": "svg.panel", "series": "#product", "sst": "svg.chart rect.cell", "explore": "#key"}[view]
+    if view in ("profile", "explore"):
+        p.wait_for_selector("#time_from" if view == "profile" else "#key", state="attached")
+    wait = {"map": "#map-count", "profile": "#time_from", "series": "#product", "sst": "svg.chart rect.cell", "explore": "#key"}[view]
     p.wait_for_selector(wait, state="attached")
     p.evaluate("document.querySelector('details.panel-filters')?.setAttribute('open', '')")       # a phone starts with it closed; the script needs the fields
     if view == "map":
         p.locator("g.fp[aria-label^='argo_synthetic']").first.focus()
         p.wait_for_selector(".mapwrap .card:not([hidden])")
     if view == "profile":
+        p.fill("#time_from", "2024-06-01")
+        p.fill("#time_to", "2024-08-31")
+        p.click("button[type=submit]")
+        p.wait_for_selector("svg.panel")
         p.select_option("#quality", "all")
         p.wait_for_timeout(800)
     if view == "series":
-        p.select_option("#product", "series_hourly__buoy_met_wave_synthetic_2025q1")
+        p.select_option("#product", BUOY)
         p.select_option("#variable", "air_pressure")
+        p.fill("#time_from", "2024-04-01")
+        p.fill("#time_to", "2024-09-30")
         p.click("button[type=submit]")
         p.wait_for_selector("svg.chart path.line")
     if view == "sst":
+        p.fill("#bbox", "50,5,54,8")
+        p.click("button[type=submit]")
+        p.wait_for_selector("svg.chart rect.cell")
         p.locator("svg.chart rect.cell").nth(40).hover(force=True)
     if view == "explore":
-        p.select_option("#key", "argo_synthetic_arabian_sea_2025q1")
+        p.select_option("#key", ARGO)
+        p.fill("#time_from", "2024-03-01")                       # one float, ten months: a whole region would pass the 5000-row limit of a subset call
+        p.fill("#time_to", "2024-12-31")
+        p.fill("#platform", "SYN-A001")
         p.click("button[type=submit]")
         p.wait_for_selector(".dlcard")
     if p.viewport_size["width"] < 760:

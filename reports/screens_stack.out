@@ -1,0 +1,3 @@
+published 16 files in 107 s
+Development accounts admin, reviewer and viewer still have their published passwords. Anyone who has read the repository can log in. Change them before any real use. (accounts: admin, reviewer, viewer)
+READY http://127.0.0.1:18092
