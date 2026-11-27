@@ -3,7 +3,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import {
-  bandRuns, baseVariables, boxParam, columnsOf, citation, colour, dispositionName, errorText, extent, flagInfo, fmt, lonSpans, monthRange, months, niceAxis,
+  bandRuns, baseVariables, boxParam, brushRange, captionLine, cellReadout, columnsOf, citation, gapSpans, isoDay, nearestIndex, nextIndex, openLinks, pointReadout, shortSha, themeIsDark, themeNext, colour, dispositionName, errorText, extent, flagInfo, fmt, lonSpans, monthRange, months, niceAxis,
   notices, oneProfile, parseBox, plusSeconds, profileList, query, runs, timeAxis, utc,
 } from "../../components/08_visualization_dashboard/dashboard/static/logic.js";
 
@@ -204,4 +204,68 @@ test("time axis: ticks on whole days inside the data, no more than about n", () 
   const same = timeAxis(1000, 1000);
   assert.ok(same.max > same.min);
   assert.ok(a.ticks.every((t) => t >= a.min && t <= a.max));
+});
+
+test("a checksum is shortened to 12 characters with an ellipsis, a short or missing one is not", () => {
+  assert.equal(shortSha("225bc3afe0a0ff0beddd693b22c7b23c2d4994c3bc1f3ebf2ba5268a1c9130f3"), "225bc3afe0a0…");
+  assert.equal(shortSha("abc"), "abc");
+  assert.equal(shortSha("abcdefghijkl"), "abcdefghijkl");           // exactly 12: nothing to cut
+  assert.equal(shortSha(null), "not recorded");
+});
+
+test("the figure caption line names the view, the key, the versions and the flags, and says when the data is synthetic", () => {
+  const info = { data_version: "d1", product_version: 3, qc_config_sha256: "ab12", flags_used: [1, 2] };
+  assert.equal(captionLine("Series", "series_hourly__buoy", info, false), "Series, series_hourly__buoy. data_version d1; product_version 3; qc_config_sha256 ab12; flags used: 1 good, 2 probably good.");
+  assert.equal(captionLine("Series", "k", { ...info, product_version: null }, true), "Series, k. data_version d1; product_version none (a dataset); qc_config_sha256 ab12; flags used: 1 good, 2 probably good. The data is synthetic (made for testing, not real ocean data).");
+});
+
+test("a brush gives the time range between two pixel positions, earliest first, kept inside the axis", () => {
+  assert.deepEqual(brushRange(402, 64, 64, 740, 0, 1000), [0, 500]);     // (402-64)/676 = 0.5 of the axis
+  assert.deepEqual(brushRange(64, 402, 64, 740, 0, 1000), [0, 500]);
+  assert.deepEqual(brushRange(10, 900, 64, 740, 0, 1000), [0, 1000]);   // dragged past both ends
+  assert.equal(isoDay(Date.UTC(2025, 0, 5, 23, 59)), "2025-01-05");
+});
+
+test("play moves to the next month and stops after the last", () => {
+  assert.equal(nextIndex(0, 3), 1);
+  assert.equal(nextIndex(1, 3), 2);
+  assert.equal(nextIndex(2, 3), null);
+  assert.equal(nextIndex(0, 0), null);
+});
+
+test("runs of empty bins become gap spans of half a bin on each side", () => {
+  const H = 3600e3;
+  assert.deepEqual(gapSpans([0, H, 2 * H, 3 * H], [2, 1, 0, 1]), [[1.5 * H, 2.5 * H]]);
+  assert.deepEqual(gapSpans([0, H, 2 * H, 3 * H], [0, 0, 1, 0]), [[-0.5 * H, 1.5 * H], [2.5 * H, 3.5 * H]]);
+  assert.deepEqual(gapSpans([0, H, 2 * H], [1, 2, 3]), []);
+  assert.deepEqual(gapSpans([0, H, 2 * H], [0, 0, 0]), [[-0.5 * H, 2.5 * H]]);
+  assert.deepEqual(gapSpans([0, H, 2 * H], [1, null, 1]), []);       // no count is not a count of zero
+});
+
+test("the nearest point to a pointer is found by horizontal distance, a tie goes to the earlier one", () => {
+  assert.equal(nearestIndex([10, 20, 30], 24), 1);
+  assert.equal(nearestIndex([10, 20], 15), 0);
+  assert.equal(nearestIndex([null, 20], 0), 1);
+  assert.equal(nearestIndex([], 5), -1);
+});
+
+test("readouts say exactly what is at the point", () => {
+  assert.equal(cellReadout({ latitude: 8, longitude: 60.25, sea_surface_temperature: 26.8643, sea_surface_temperature_n_obs: 12 }, "sea_surface_temperature", "degC"), "latitude 8, longitude 60.25: 26.8643 degC, 12 observations");
+  assert.equal(cellReadout({ latitude: 8, longitude: 60, v: null }, "v", ""), "latitude 8, longitude 60: no value, observation count not given");
+  assert.equal(pointReadout("temperature", 12, "degC", 2, 2), "temperature 12 degC at 2 m, flag 2 probably good");
+  assert.equal(pointReadout("temperature", null, "", 6, null), "temperature no value at 6 m, flag none");
+});
+
+test("the theme choice cycles system, light, dark and an unknown choice falls back to system", () => {
+  assert.deepEqual(["system", "light", "dark", "dark"].map(themeNext), ["light", "dark", "system", "system"]);
+  assert.equal(themeNext("nonsense"), "system");
+  assert.deepEqual([["dark", false], ["light", true], ["system", true], ["system", false]].map(([c, d]) => themeIsDark(c, d)), [true, false, true, false]);
+});
+
+test("a dataset opens in the view that fits it, then in Explore", () => {
+  assert.deepEqual(openLinks({ dataset_key: "a b", dataset_type: "profile" }).map((l) => l.label), ["Open profile", "Explore"]);
+  assert.equal(openLinks({ dataset_key: "a b", dataset_type: "profile" })[0].href, "#/profile?key=a%20b");
+  assert.deepEqual(openLinks({ dataset_key: "b", dataset_type: "timeseries" }).map((l) => l.href), ["#/series?key=series_hourly__b", "#/explore?type=dataset&key=b"]);
+  assert.deepEqual(openLinks({ dataset_key: "s", dataset_type: "grid", variables: ["sea_surface_temperature"] }).map((l) => l.label), ["Open SST", "Explore"]);
+  assert.deepEqual(openLinks({ dataset_key: "g", dataset_type: "grid", variables: ["elevation"] }).map((l) => l.label), ["Explore"]);
 });

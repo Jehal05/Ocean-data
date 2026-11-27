@@ -328,7 +328,7 @@ def test_profile_with_all_values_shows_the_flag_by_shape_and_label(pg):
     p.click("main .tableblock button")
     rows = table_rows(p, ".tableblock table")
     assert [r[1] for r in rows] == ["10", "12", "20", "22", "5"] and rows[3][2] == "3 probably bad"
-    assert p.locator("svg.legend text").count() == 5                        # the legend names every shape
+    assert p.locator(".legend .chip").count() == 6                          # the legend names every shape (the six flags, each a chip with its shape and words)
 
 
 def test_profile_of_the_real_argo_file_has_one_point_per_good_level(pg):
@@ -367,7 +367,7 @@ def test_series_band_line_gap_and_counts_match_the_hand_computed_hours(pg):
     assert bars.count() == 4                                                 # one bar per bin ...
     heights = [float(bars.nth(i).get_attribute("height")) for i in range(4)]
     assert [h > 0 for h in heights] == [True, True, False, True]             # ... and the empty hour's bar has no height
-    assert "Band: minimum to maximum" in p.inner_text(".hint")
+    assert p.locator(".hint", has_text="Band: minimum to maximum").count() == 1
 
 
 def test_a_direction_variable_has_a_circular_mean_and_no_band(pg):
@@ -680,13 +680,18 @@ def test_keyboard_and_screen_reader_basics(pg):
     p.keyboard.press("Tab")
     assert p.evaluate("document.activeElement.className") == "skip"        # the first stop is the skip link
     p.keyboard.press("Tab")
+    assert p.evaluate("document.activeElement.id") == "theme"               # then the top bar (theme, sign out), then the sidebar
+    p.keyboard.press("Tab")
+    assert p.evaluate("document.activeElement.id") == "logout"
+    p.keyboard.press("Tab")
     assert p.evaluate("document.activeElement.getAttribute('data-view')") == "map"
     pg.go("profile", "svg.panel")
     assert p.evaluate("document.activeElement.id") == "heading"            # focus moves to the page heading on a route change
     unlabeled = p.evaluate("[...document.querySelectorAll('input:not([type=checkbox]), select')].filter(e => !e.closest('label')).length")
     assert unlabeled == 0
     for svg in p.query_selector_all("svg.chart"):
-        assert svg.get_attribute("role") == "img" and svg.get_attribute("aria-label")
+        # a chart you can only look at is an image; a chart you can move through with the arrow keys is a focusable group. Both have a name.
+        assert svg.get_attribute("aria-label") and (svg.get_attribute("role") == "img" or (svg.get_attribute("role") == "group" and svg.get_attribute("tabindex") == "0"))
     btn = p.locator("main .tableblock button")
     assert btn.get_attribute("aria-expanded") == "false" and p.locator(".tableblock table").is_hidden()
     btn.press("Enter")                                                      # the table alternative works from the keyboard
@@ -787,3 +792,572 @@ def test_until_fails_at_once_on_a_real_page_that_throws(browser):
         assert time.monotonic() - t0 < 5                                    # at once, not after the 15 s timeout
     finally:
         pgx.close()
+
+
+# ================================================================== Chart room (UI redesign) ==
+VIEWS5 = (("map", "#map-count"), ("profile", "svg.panel"), ("series", "svg.chart path.line"), ("sst?key=sst_monthly_mean__sst_synthetic_0p25deg_2025q1", "svg.chart rect.cell"), ("explore", ".panel-filters"))
+SST_KEY = "sst_monthly_mean__sst_synthetic_0p25deg_2025q1"
+
+
+def set_theme(p, want):
+    for _ in range(4):
+        if p.get_attribute("#theme", "data-theme") == want:
+            return
+        p.click("#theme")
+    raise AssertionError(f"could not reach the theme {want}")
+
+
+def is_dark(p):
+    return p.evaluate("document.documentElement.classList.contains('dark')")
+
+
+def stub_clipboard(p, ok=True):
+    p.evaluate("""(ok) => { window.__copied = null;
+        Object.defineProperty(navigator, 'clipboard', {configurable: true, value: {writeText: (t) => ok ? (window.__copied = t, Promise.resolve()) : Promise.reject(new Error('denied'))}}); }""", ok)
+
+
+# ---- 3. layout: sidebar and top bar ----
+def test_the_sidebar_has_five_icon_links_with_one_current_and_the_top_bar_has_user_role_theme_and_sign_out(pg):
+    pg.login()
+    p = pg.page
+    p.wait_for_selector("#map-count")
+    links = p.locator("nav#nav[aria-label=Main] a[data-view]")
+    assert links.count() == 5
+    assert p.eval_on_selector_all("#nav a[data-view]", "a => a.map(x => [x.querySelectorAll('svg').length, x.textContent.trim()])") == [[1, "Map"], [1, "Profile"], [1, "Series"], [1, "SST"], [1, "Explore"]]
+    assert p.locator("#nav a[aria-current=page]").count() == 1 and p.get_attribute("#nav a[aria-current=page]", "data-view") == "map"
+    assert p.inner_text(".topbar .who") == "viewer · viewer" or p.inner_text(".topbar .who").startswith("viewer")
+    assert p.locator(".topbar #logout").inner_text() == "Sign out" and p.locator(".topbar #theme").count() == 1
+    assert p.locator("body.anon").count() == 0
+
+
+def test_the_sidebar_is_not_shown_to_someone_who_is_not_signed_in(pg):
+    p = pg.page
+    p.goto(BASE + "/app")
+    p.wait_for_selector("#username")
+    assert p.locator("body.anon").count() == 1 and not p.is_visible("#nav")
+    assert p.is_visible("#theme")                                                   # the theme choice is available on the login page too
+
+
+# ---- 4. provenance strip ----
+def test_every_figure_has_a_provenance_strip_with_versions_a_short_checksum_and_flag_chips(pg):
+    pg.login()
+    for view, wait in VIEWS5[1:4]:
+        p = pg.go(view, wait).page
+        strip = p.locator(".provenance").first
+        strip.wait_for()
+        assert p.locator(".provenance").count() == 1
+        for field in ("data_version", "product_version", "qc_config_sha256", "flags_used"):
+            assert strip.locator(f"[data-field={field}]").count() == 1, (view, field)
+        assert strip.locator("[data-field=data_version]").inner_text() not in ("", "unknown")
+        short = strip.locator("[data-field=qc_config_sha256]")
+        full = short.get_attribute("title")
+        assert re.fullmatch(r"[0-9a-f]{64}", full) and short.inner_text() == full[:12] + "…"     # 12 characters shown, the whole value in the title
+        assert strip.locator("[data-field=flags_used] .chip").count() >= 1
+
+
+def test_the_copy_buttons_copy_the_checksum_and_a_one_line_caption_and_say_so(pg):
+    pg.login()
+    p = pick_profile(pg)
+    p.wait_for_selector(".provenance")
+    stub_clipboard(p)
+    full = p.get_attribute(".provenance [data-field=qc_config_sha256]", "title")
+    p.click(".provenance .copy-sha")
+    until(p, "document.querySelector('.prov-copied')?.textContent === 'Copied'")
+    assert p.evaluate("window.__copied") == full and p.get_attribute(".prov-copied", "role") == "status"
+    p.click(".provenance .copy-caption")
+    caption = p.evaluate("window.__copied")
+    assert "\n" not in caption and "stale_target" in caption and full in caption and "flags used:" in caption
+    assert p.inner_text(".provenance [data-field=data_version]") in caption
+    assert ("synthetic" in caption) == (p.inner_text("#synthetic").strip() != "")      # the synthetic notice is in the caption exactly when it is in the footer
+
+
+def test_when_the_clipboard_is_refused_the_text_is_shown_selected_in_a_visible_field(pg):
+    pg.login()
+    p = pick_profile(pg)
+    p.wait_for_selector(".provenance")
+    stub_clipboard(p, ok=False)
+    p.click(".provenance .copy-caption")
+    p.wait_for_selector(".provenance input.copyline")
+    assert p.is_visible(".copyline")
+    sel = p.evaluate("(() => { const e = document.querySelector('.copyline'); return [document.activeElement === e, e.selectionStart, e.selectionEnd, e.value.length]; })()")
+    assert sel[0] and sel[1] == 0 and sel[2] == sel[3] > 40                           # focused, and the whole text is selected
+
+
+# ---- 5. flag chips ----
+def test_flag_chips_carry_the_marker_shape_and_the_words_in_the_legend_the_table_and_the_strip(pg):
+    pg.login()
+    p = pick_profile(pg)
+    p.wait_for_selector("svg.panel .mk")
+    p.select_option("#quality", "all")
+    until(p, "document.querySelectorAll('.tableblock tbody tr').length > 0 && document.querySelector('.tableblock td .chip[data-flag=\"3\"]')")
+    shape = "c => { const e = c.querySelector('svg > *'); return e.tagName + ':' + (e.getAttribute('class') || '') + ':' + ((e.getAttribute('points') || '').split(' ').length || 0); }"
+    legend = {c.get_attribute("data-flag"): c for c in p.locator(".legend .chip").all()}
+    assert sorted(legend) == ["0", "1", "2", "3", "4", "9"]
+    assert [legend[k].inner_text().strip() for k in sorted(legend)] == ["0 not checked", "1 good", "2 probably good", "3 probably bad", "4 bad", "9 missing"]
+    tags = {k: legend[k].evaluate(shape) for k in legend}
+    assert tags["0"].startswith("rect") and tags["1"].startswith("circle") and tags["3"].endswith(":3") and tags["2"].endswith(":4") and tags["4"].startswith("path") and tags["9"].startswith("circle")
+    cell = p.locator(".tableblock td .chip[data-flag='3']").first
+    assert cell.inner_text().strip() == "3 probably bad" and cell.evaluate(shape) == tags["3"]       # the table chip has the legend chip's shape
+    marker = p.locator("svg.panel polygon.mk.flag3").first
+    assert len(marker.get_attribute("points").split(" ")) == 3                                       # and the chart marker is the same triangle
+    assert p.locator(".provenance [data-field=flags_used] .chip").count() >= 1
+
+
+def test_an_unknown_flag_is_named_as_unknown_never_shown_as_good(pg):
+    pg.login()
+    p = pg.page
+
+    def tamper(route, request):
+        r = route.fetch()
+        body = r.json()
+        for row in body.get("rows", []):
+            if "temperature_qc" in row:
+                row["temperature_qc"] = 7
+        route.fulfill(response=r, json=body)
+
+    p.route("**/datasets/stale_target/subset*", tamper)
+    p.goto(BASE + "/app#/profile")
+    p.select_option("#dataset", "stale_target")
+    p.click("button[type=submit]")
+    p.wait_for_selector("svg.panel .mk")
+    p.select_option("#quality", "all")
+    until(p, "document.querySelector('.tableblock td .chip[data-flag=\"7\"]')")
+    assert p.locator(".tableblock td .chip[data-flag='7']").first.inner_text().strip() == "unknown flag 7"
+    p.unroute("**/datasets/stale_target/subset*")
+
+
+# ---- 6. map ----
+def test_the_map_has_an_ocean_a_degree_graticule_and_a_legend_by_type(pg):
+    pg.login()
+    p = pg.page
+    p.wait_for_selector("#map-count")
+    assert p.get_attribute("svg.chart rect.mapbg", "fill") == "url(#ocean)" and p.locator("#ocean").count() == 1
+    labels = p.eval_on_selector_all("svg.chart .glabel", "t => t.map(x => x.textContent)")
+    assert labels and all(re.fullmatch(r"(0|[0-9]+)°[EWNS]?", t) for t in labels)
+    nums = {int(re.match(r"\d+", t).group(0)) for t in labels}
+    assert all(n % 30 == 0 for n in nums)                                              # every 30 degrees
+    kinds = p.locator(".legend .chip").all_inner_texts()
+    assert [k.strip() for k in kinds] == ["profile (solid)", "time series (hatched)", "grid (dotted)"]
+    assert p.locator("pattern#fphatch").count() == 1 and p.locator("pattern#fpdots").count() == 1
+    fill = lambda sel: p.eval_on_selector(sel, "e => getComputedStyle(e).fill")           # noqa: E731
+    assert "fphatch" in fill("svg.swatch.type-timeseries rect") and "fpdots" in fill("svg.swatch.type-grid rect")      # the legend uses the same patterns as the footprints
+    assert "fpdots" in fill("g.fp.type-grid rect.fprect")
+
+
+def test_a_footprint_card_opens_on_hover_and_on_focus_enter_pins_it_and_escape_closes_it(pg):
+    pg.login()
+    p = pg.page
+    p.wait_for_selector("#map-count")
+    assert p.locator(".mapwrap .card").is_hidden()
+    p.locator("g.fp[aria-label^='antimeridian:']").first.hover(force=True)               # mouse
+    p.wait_for_selector(".mapwrap .card:not([hidden])")
+    card = p.inner_text(".mapwrap .card")
+    assert "antimeridian" in card and "Explore" in card and "Platform" in card and "Time" in card and "Variables" in card
+    assert p.get_attribute(".card a:has-text('Explore')", "href") == "#/explore?type=dataset&key=antimeridian"
+    p.mouse.move(2, 2)
+    until(p, "document.querySelector('.mapwrap .card').hidden")                           # leaving closes a card that was not pinned
+    p.locator("g.fp[aria-label^='argo_synthetic_arabian_sea_2025q1:']").first.focus()      # keyboard
+    p.wait_for_selector(".mapwrap .card:not([hidden])")
+    assert "Open profile" in p.inner_text(".card") and p.get_attribute(".card a:has-text('Open profile')", "href").startswith("#/profile?key=argo_synthetic")
+    p.keyboard.press("Enter")
+    assert p.locator("g.fp.pinned").count() == 1 and p.evaluate("!!document.activeElement.closest('.card')")      # pinned, and focus moved into the card
+    p.keyboard.press("Escape")
+    assert p.locator(".mapwrap .card").is_hidden() and p.locator("g.fp.pinned").count() == 0
+    assert p.evaluate("document.activeElement.getAttribute('aria-label')").startswith("argo_synthetic_arabian_sea_2025q1:")   # focus is back on the footprint
+
+
+def test_a_hostile_title_in_the_footprint_card_is_text(pg):
+    pg.login()
+    p = pg.page
+    p.wait_for_selector("#map-count")
+    p.locator("g.fp[aria-label^='hostile:']").first.focus()
+    p.wait_for_selector(".mapwrap .card:not([hidden])")
+    assert p.inner_text(".card h3") == HOSTILE_TITLE and p.locator(".card img").count() == 0
+    assert p.evaluate("window.__pwned") is None
+
+
+# ---- 7. profile ----
+def test_temperature_and_salinity_panels_are_side_by_side_and_stack_on_a_narrow_screen(pg):
+    pg.login()
+    p = pick_profile(pg, "argo_synthetic_arabian_sea_2025q1")
+    p.wait_for_selector("svg.panel")
+    assert p.locator("svg.panel").count() == 2
+    a, b = (p.locator("svg.panel").nth(i).bounding_box() for i in (0, 1))
+    assert abs(a["y"] - b["y"]) < 2 and b["x"] > a["x"] + a["width"] - 1                 # side by side
+    p.set_viewport_size({"width": 600, "height": 900})
+    p.wait_for_timeout(200)
+    a, b = (p.locator("svg.panel").nth(i).bounding_box() for i in (0, 1))
+    assert b["y"] > a["y"] + a["height"] - 1 and abs(a["x"] - b["x"]) < 2                # stacked below 700 px
+
+
+def test_the_profile_crosshair_readout_and_table_row_follow_the_pointer_and_the_arrow_keys(pg):
+    pg.login()
+    p = pick_profile(pg)
+    p.wait_for_selector("svg.panel .mk")
+    p.click("main .tableblock button")
+    assert p.locator("svg.panel line.crosshair:not([hidden])").count() == 0 and p.locator("tr.hl").count() == 0
+    mk = p.locator("svg.panel").first.locator(".mk").nth(1).bounding_box()
+    box = p.locator("svg.panel").first.locator("rect.hit").bounding_box()
+    p.mouse.move(box["x"] + box["width"] / 2, mk["y"] + mk["height"] / 2)
+    until(p, "document.querySelectorAll('svg.panel line.crosshair:not([hidden])').length >= 2")
+    text = p.inner_text("#readout")
+    assert re.match(r"temperature [\d.]+ .* at [\d.]+ m, flag \d [a-z ]+", text) and p.locator("#readout .chip").count() == 1
+    assert p.locator("tr.hl").count() == 1
+    depth = p.inner_text("tr.hl td:first-child")
+    assert f"at {depth} m" in text                                                       # the highlighted row is the point read out
+    first = p.inner_text("#readout")
+    p.locator("svg.panel").first.focus()                                                 # keyboard
+    p.keyboard.press("ArrowDown")
+    until(p, f"document.getElementById('readout').textContent !== {first!r}")
+    assert p.locator("tr.hl").count() == 1
+    p.keyboard.press("Escape")
+    until(p, "document.querySelectorAll('tr.hl').length === 0")
+    assert p.locator("svg.panel line.crosshair:not([hidden])").count() == 0
+
+
+# ---- 8. series ----
+BUOY = "series_hourly__buoy_met_wave_synthetic_2025q1"
+
+
+def test_dragging_a_brush_on_the_series_sets_from_and_to_and_asks_again(pg):
+    pg.login()
+    p = pick_series(pg, BUOY, "air_pressure")
+    p.wait_for_selector("svg.chart rect.brushhit")
+    f0, t0 = p.input_value("#time_from"), p.input_value("#time_to")
+    n0 = len(_count_subset_requests(pg, BUOY))
+    box = p.locator("svg.chart rect.brushhit").bounding_box()
+    y = box["y"] + box["height"] / 2
+    p.mouse.move(box["x"] + box["width"] * 0.25, y)
+    p.mouse.down()
+    p.mouse.move(box["x"] + box["width"] * 0.5, y, steps=5)
+    assert p.locator("svg.chart rect.brush:not([hidden])").count() == 1                  # the brush is drawn while dragging
+    p.mouse.up()
+    until(p, f"document.getElementById('time_from').value !== {f0!r}")
+    f1, t1 = p.input_value("#time_from"), p.input_value("#time_to")
+    assert f0 < f1 < t1 <= t0 and t1 < t0                                                # a narrower range inside the old one
+    until(p, "document.querySelector('svg.chart path.line') && !document.querySelector('.skeleton')")
+    assert len(_count_subset_requests(pg, BUOY)) > n0                                    # the same API call, made again
+    until(p, f"document.querySelector('#range_from') && document.querySelector('output[for=range_from]').textContent >= {f1!r}")
+
+
+def test_two_range_inputs_are_the_keyboard_route_to_the_same_zoom(pg):
+    pg.login()
+    p = pick_series(pg, BUOY, "air_pressure")
+    p.wait_for_selector("#range_from")
+    f0 = p.input_value("#time_from")
+    n0 = len(_count_subset_requests(pg, BUOY))
+    p.focus("#range_from")
+    for _ in range(3):
+        p.keyboard.press("ArrowRight")
+    shown = p.inner_text("output[for=range_from]")
+    assert p.input_value("#time_from") == shown and shown > f0                           # From follows the slider
+    assert len(_count_subset_requests(pg, BUOY)) == n0                                   # nothing is asked until the range is applied
+    p.focus("#range_to")
+    p.keyboard.press("ArrowLeft")
+    assert p.input_value("#time_to") == p.inner_text("output[for=range_to]")
+    p.focus("#range_apply")
+    p.keyboard.press("Enter")
+    until(p, f"document.getElementById('time_from').value === {shown!r} && document.querySelector('svg.chart path.line')")
+    assert len(_count_subset_requests(pg, BUOY)) > n0
+    until(p, "document.activeElement.id === 'range_apply'")                              # focus is not lost when the chart is drawn again
+
+
+def test_a_bin_with_no_good_values_is_a_hatched_strip_labelled_in_words(pg):
+    pg.login()
+    p = pick_series(pg, "series_hourly__hostile")
+    gap = p.locator("svg.chart rect.gap")
+    assert gap.count() == 1                                                              # hour 2 only
+    assert p.locator("pattern#gaphatch").count() == 1 and "gaphatch" in gap.evaluate("e => getComputedStyle(e).fill")
+    assert gap.locator("title").text_content() == "no good values"
+    assert p.locator(".hint", has_text="hatched strip marked").count() == 1
+    assert p.locator("svg.chart path.line").count() == 2                                 # and the line is broken there, not drawn through zero
+
+
+# ---- 9. SST ----
+def test_the_month_slider_and_the_select_agree_and_the_slider_asks_for_that_month(pg):
+    pg.login()
+    p = pg.go(f"sst?key={SST_KEY}", "#month_slider").page
+    p.wait_for_selector("svg.chart rect.cell")
+    n = p.locator("#month option").count()
+    assert n >= 2 and p.get_attribute("#month_slider", "max") == str(n - 1)
+    assert p.locator("label[for=month_slider]").inner_text() == "Month" and p.inner_text("#month_text") == p.input_value("#month")
+    first = p.input_value("#month")
+    p.focus("#month_slider")
+    p.keyboard.press("ArrowRight")
+    until(p, f"document.getElementById('month').value !== {first!r} && document.getElementById('month_text').textContent === document.getElementById('month').value")
+    until(p, "document.querySelector('svg.chart rect.cell') && !document.querySelector('.skeleton')")
+    assert p.locator("svg.chart rect.cell").count() > 0
+
+
+def test_play_steps_one_month_at_a_time_and_stops_at_the_last_month(pg):
+    pg.login()
+    p = pg.go(f"sst?key={SST_KEY}", "#play").page
+    p.wait_for_selector("svg.chart rect.cell")
+    months = p.eval_on_selector_all("#month option", "o => o.map(x => x.value)")
+    assert len(months) >= 2 and p.input_value("#month") == months[0]
+    p.click("#play")
+    assert p.inner_text("#play") == "Pause"
+    seen = []
+    end = time.monotonic() + 12
+    while time.monotonic() < end and p.inner_text("#play") == "Pause":
+        v = p.input_value("#month")
+        if not seen or seen[-1] != v:
+            seen.append(v)
+        p.wait_for_timeout(100)
+    assert p.inner_text("#play") == "Play"                                               # stopped by itself
+    assert seen == months                                                                # it stepped one month at a time, never skipping one, to the last
+    until(p, f"document.getElementById('month_text').textContent === {months[-1]!r}")
+    p.wait_for_timeout(1300)
+    assert p.input_value("#month") == months[-1]                                         # and stays on the last
+
+
+def test_a_late_answer_for_an_earlier_month_never_overwrites_the_newer_one(pg):
+    pg.login()
+    p = pg.go(f"sst?key={SST_KEY}", "#month_slider").page
+    p.wait_for_selector("svg.chart rect.cell")
+    months = p.eval_on_selector_all("#month option", "o => o.map(x => x.value)")
+    held = []
+    p.route(f"**/products/{SST_KEY}/subset*", lambda route, request: held.append(route) if not held else route.continue_())
+    p.focus("#month_slider")
+    p.keyboard.press("ArrowRight")                                                       # month 2: held back
+    while not held:
+        p.wait_for_timeout(50)
+    p.keyboard.press("ArrowRight") if len(months) > 2 else p.keyboard.press("ArrowLeft")      # month 3 (or back to 1): answered at once
+    want = months[2] if len(months) > 2 else months[0]
+    until(p, f"document.getElementById('month_text').textContent === {want!r} && document.querySelector('svg.chart rect.cell')")
+    first = lambda: p.locator("svg.chart rect.cell title").first.text_content()               # noqa: E731  (a cell's own value: it differs from month to month)
+    now = first()
+    held[0].continue_()
+    p.wait_for_timeout(1000)
+    assert p.input_value("#month") == want and first() == now                                 # the old month's answer did not replace the newer drawing
+    p.unroute(f"**/products/{SST_KEY}/subset*")
+
+
+def test_play_is_disabled_with_a_visible_reason_when_the_system_asks_for_less_motion(browser):
+    ctx = browser.new_context(viewport={"width": 1100, "height": 900}, reduced_motion="reduce")
+    p = ctx.new_page()
+    try:
+        p.goto(BASE + "/app")
+        p.fill("#username", "viewer")
+        p.fill("#password", "viewer123")
+        p.click("button[type=submit]")
+        p.wait_for_selector("#nav a")
+        p.goto(f"{BASE}/app#/sst?key={SST_KEY}")
+        p.wait_for_selector("#play")
+        assert p.is_disabled("#play") and p.is_visible("#play-note") and "less motion" in p.inner_text("#play-note")
+        assert p.locator("#month_slider").is_enabled()                                   # the slider still works
+    finally:
+        ctx.close()
+
+
+def test_a_cell_readout_gives_latitude_longitude_value_with_unit_and_observation_count(pg):
+    pg.login()
+    p = pg.go(f"sst?key={SST_KEY}", "svg.chart rect.cell").page
+    p.wait_for_selector("#cell-readout")
+    p.locator("svg.chart rect.cell").nth(5).hover(force=True)
+    until(p, "document.querySelector('rect.cell.sel')")
+    text = p.inner_text("#cell-readout")
+    assert re.fullmatch(r"latitude [\d.]+, longitude [\d.]+: [\d.]+ \S+, \d+ observations?", text), text
+    i = int(p.get_attribute("rect.cell.sel", "data-i"))
+    p.click("main .tableblock button")
+    row = table_rows(p, ".tableblock table")[i]
+    assert text.startswith(f"latitude {row[0]}, longitude {row[1]}") and f": {row[2]} " in text and text.endswith(f", {row[3]} observations")   # the same numbers as the table
+    p.locator("svg.chart").first.focus()                                                 # keyboard
+    p.keyboard.press("ArrowRight")
+    until(p, f"document.querySelector('rect.cell.sel').getAttribute('data-i') !== '{i}'")
+    assert p.locator("rect.cell.sel").count() == 1
+    ends = p.eval_on_selector_all("svg.chart.bar text", "t => t.map(x => x.textContent)")
+    assert p.locator("svg.chart.bar").count() == 1 and ends[0].startswith("min ") and ends[1].startswith("max ")
+
+
+# ---- 10. explore ----
+def test_explore_has_four_steps_and_download_cards_with_the_file_type_the_rows_and_the_limit(pg):
+    pg.login()
+    p = explore(pg, "dataset", "argo_synthetic_arabian_sea_2025q1")
+    assert p.locator(".steps > li.step").count() == 3
+    assert p.locator("text=Step 1: Choose").count() == 1 and p.locator("text=Step 2: Filter").count() == 1 and p.locator("text=Step 3: Preview").count() == 1
+    assert p.locator(".dlcard").count() == 0                                             # step 4 appears with the preview
+    p.click("button[type=submit]")
+    p.wait_for_selector(".dlcard")
+    assert p.locator("text=Step 4: Download").count() == 1 and p.locator(".dlcard").count() == 2
+    limit = pg.ctx.request.get(f"{BASE}/limits").json()
+    max_dl = {x["name"]: x["value"] for x in limit["limits"]}["max_rows_download"]
+    selected = int(re.match(r"(\d+) rows selected", p.inner_text("#explore-count")).group(1))
+    assert [c.strip() for c in p.locator(".dlcard .ftype").all_inner_texts()] == ["CSV", "NetCDF"]
+    assert p.locator(".dlcard .dlrows").all_inner_texts() == [f"{selected} rows selected"] * 2
+    assert p.locator(".dlcard .dllimit").all_inner_texts() == [f"Rows limit for a download: {max_dl}"] * 2
+    assert "formula" in p.inner_text(".dlcard:has(.ftype:text-is('CSV'))")
+    assert p.locator("button.dl[data-format=csv]").count() == 1 and p.locator("button.dl[data-format=netcdf]").count() == 1
+
+
+def test_the_explore_status_line_says_which_page_of_how_many(pg):
+    pg.login()
+    p = explore(pg, "dataset", "argo_synthetic_arabian_sea_2025q1", quality="all")
+    p.click("button[type=submit]")
+    p.wait_for_selector("#explore-status")
+    assert p.get_attribute("#explore-status", "role") == "status"
+    m = re.fullmatch(r"Page 1 of (\d+) \((\d+) rows selected\)", p.inner_text("#explore-status"))
+    assert m and int(m.group(1)) == -(-int(m.group(2)) // 50)
+
+
+# ---- 11. feedback ----
+def test_a_skeleton_stands_in_while_a_request_is_open_and_is_gone_after_the_answer(pg):
+    pg.login()
+    p = pg.page
+    p.wait_for_selector("#map-count")
+    held = []
+    p.route("**/datasets?*", lambda route, request: held.append(route))
+    p.click("button[type=submit]")
+    while not held:
+        p.wait_for_timeout(50)
+    assert p.locator(".result .skeleton").count() >= 1 and p.locator("#map-count").count() == 0 and p.locator(".skeleton-box [role=status]").inner_text() == "Loading"
+    held[0].continue_()
+    until(p, "document.getElementById('map-count') && !document.querySelector('.skeleton')")
+    p.unroute("**/datasets?*")
+
+
+def test_links_in_the_map_table_are_at_least_24_px_square(pg):
+    pg.login()
+    p = pg.page
+    p.wait_for_selector("table.list td a")
+    small = p.eval_on_selector_all("table.list td a", "a => a.map(e => e.getBoundingClientRect()).filter(r => r.width < 24 || r.height < 24).length")
+    assert small == 0                                                                           # WCAG 2.2 target size (2.5.8)
+
+
+def test_an_empty_result_says_so_and_offers_a_next_step(pg):
+    pg.login()
+    p = pg.page
+    p.wait_for_selector("#map-count")
+    p.fill("#q", "no-such-dataset-anywhere")
+    p.click("button[type=submit]")
+    p.wait_for_selector(".empty")
+    assert "No datasets match" in p.inner_text(".empty") and "Widen" in p.inner_text(".empty")
+    p.click(".empty button")                                                              # the next step works: clear the filters
+    until(p, "document.getElementById('map-count')?.textContent === '8 datasets shown'")
+    p = explore(pg, "dataset", "hostile", quality="all", time_from="2030-01-01")
+    p.click("button[type=submit]")
+    p.wait_for_selector(".empty")
+    assert "No rows match" in p.inner_text(".empty") and p.locator(".dlcard").count() == 0
+
+
+# ---- 12. theme ----
+def test_the_theme_button_cycles_system_light_dark_and_the_choice_survives_a_reload(pg):
+    pg.login()
+    p = pg.page
+    p.wait_for_selector("#map-count")
+    assert p.get_attribute("#theme", "data-theme") == "system" and not is_dark(p)
+    p.click("#theme")
+    assert p.get_attribute("#theme", "data-theme") == "light" and not is_dark(p)
+    p.click("#theme")
+    assert p.get_attribute("#theme", "data-theme") == "dark" and is_dark(p)
+    assert p.evaluate("localStorage.getItem('scats-theme')") == "dark"
+    p.reload()
+    p.wait_for_selector("#map-count")
+    assert is_dark(p) and p.get_attribute("#theme", "data-theme") == "dark"            # remembered
+    assert p.evaluate("getComputedStyle(document.body).backgroundColor") != "rgb(247, 244, 238)"
+    p.click("#theme")
+    assert p.get_attribute("#theme", "data-theme") == "system" and p.evaluate("localStorage.getItem('scats-theme')") == "system"
+    assert p.evaluate("document.documentElement.getAttribute('style')") is None        # set with a class, never an inline style
+
+
+def test_system_follows_the_operating_system_and_an_explicit_choice_does_not(pg):
+    pg.login()
+    p = pg.page
+    p.wait_for_selector("#map-count")
+    p.emulate_media(color_scheme="dark")
+    until(p, "document.documentElement.classList.contains('dark')")
+    p.emulate_media(color_scheme="light")
+    until(p, "!document.documentElement.classList.contains('dark')")
+    p.click("#theme")                                                                      # light
+    p.emulate_media(color_scheme="dark")
+    p.wait_for_timeout(300)
+    assert not is_dark(p)
+
+
+def test_the_page_works_when_local_storage_throws(browser):
+    ctx = browser.new_context(viewport={"width": 1100, "height": 900})
+    ctx.add_init_script("""const boom = () => { throw new DOMException('blocked', 'SecurityError'); };
+        Storage.prototype.getItem = boom; Storage.prototype.setItem = boom;""")
+    p = ctx.new_page()
+    errors = []
+    p.on("pageerror", lambda e: errors.append(str(e)))
+    try:
+        p.goto(BASE + "/app")
+        p.fill("#username", "viewer")
+        p.fill("#password", "viewer123")
+        p.click("button[type=submit]")
+        p.wait_for_selector("#map-count")
+        p.click("#theme")
+        p.click("#theme")
+        assert is_dark(p) and p.get_attribute("#theme", "data-theme") == "dark"          # the choice works for this visit
+        assert errors == []
+    finally:
+        ctx.close()
+
+
+# ---- 13. responsive, no errors, axe ----
+@pytest.mark.parametrize("theme", ["light", "dark"])
+def test_no_view_scrolls_sideways_at_360_px_and_the_bottom_bar_is_reachable(browser, stack, theme):
+    pg = Pg(browser)
+    try:
+        pg.page.set_viewport_size({"width": 360, "height": 740})
+        pg.login()
+        p = pg.page
+        set_theme(p, theme)
+        for view, wait in VIEWS5:
+            pg.go(view, wait)
+            until(p, "!document.querySelector('.skeleton')")
+            over = p.evaluate("[document.documentElement.scrollWidth, document.documentElement.clientWidth]")
+            assert over[0] <= over[1], (view, theme, over)
+            nav = p.locator("#nav").bounding_box()
+            assert nav["y"] + nav["height"] >= 739 and nav["width"] >= 359             # the sidebar is a bottom bar on a narrow screen
+            assert p.locator("#nav a").first.locator(".navlabel").is_visible()
+    finally:
+        pg.close()
+
+
+@pytest.mark.parametrize("theme", ["light", "dark"])
+def test_no_view_raises_a_page_error_or_a_csp_violation_in_either_theme(browser, stack, theme):
+    pg = Pg(browser)
+    try:
+        pg.login()
+        set_theme(pg.page, theme)
+        for view, wait in VIEWS5:
+            pg.go(view, wait)
+            pg.page.wait_for_timeout(200)
+        pg.page.hover("#nav a[data-view=map]")
+        bad = [(k, t) for k, t in pg.console if k == "pageerror" or "Content Security Policy" in t or "Refused to" in t]
+        assert bad == []
+        assert pg.page.evaluate("document.querySelectorAll('[style]').length") == 0       # nothing carries an inline style
+    finally:
+        pg.close()
+
+
+@pytest.mark.skipif(not AXE.is_file(), reason="axe-core is not installed: run `npm install --prefix tests/tools`")
+@pytest.mark.parametrize("theme", ["light", "dark"])
+@pytest.mark.parametrize("width", [360, 1280])
+def test_axe_finds_no_a_or_aa_violation_in_any_view_in_either_theme_at_360_and_1280_px(browser, stack, theme, width):
+    pg = Pg(browser)
+    try:
+        p = pg.page
+        p.set_viewport_size({"width": width, "height": 900})
+        pg.login()
+        set_theme(p, theme)
+        src = AXE.read_text()
+        tags = ["wcag2a", "wcag2aa", "wcag21a", "wcag21aa", "wcag22aa"]
+        found = {}
+        for view, wait in VIEWS5:
+            pg.go(view, wait)
+            until(p, "!document.querySelector('.skeleton')")
+            p.evaluate("document.querySelector('details.panel-filters')?.setAttribute('open', '')")      # closed on a phone: open it so its fields are checked too
+            if view == "explore":
+                until(p, "document.querySelectorAll('#key option').length > 0")
+            p.mouse.move(0, 0)
+            p.evaluate(src)
+            res = p.evaluate("axe.run(document, {runOnly: {type: 'tag', values: %s}}).then(r => ({passes: r.passes.length, v: r.violations.map(x => ({id: x.id, impact: x.impact, nodes: x.nodes.slice(0, 3).map(n => n.target.join(' '))}))}))" % tags)
+            assert res["passes"] > 10, (view, res)
+            if res["v"]:
+                found[view] = res["v"]
+        assert found == {}, (theme, width, found)
+    finally:
+        pg.close()

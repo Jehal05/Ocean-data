@@ -12,13 +12,13 @@ It starts the database stand-in and an S3 stand-in, publishes the five synthetic
 
 ## Steps
 
-1. **Login.** The page warns that development passwords are in use. Sign in as `viewer` (a development account; its published password is in `db/init/003_*`). Point out: a wrong password gives a plain message; five wrong ones lock the account for 15 minutes.
-2. **Map.** Five footprints on a graticule (no coastline: none is licensed in the repo). Filter by platform type `argo`; type a bad box such as `10,20` to show the plain-words refusal. Footer: "synthetic".
-3. **Profile.** Dataset `argo...`; pick a profile. Temperature and salinity against depth. Switch "Quality" to "all": flagged points appear with a different shape and a label. Show the table alternative.
-4. **Series.** `series_hourly` of the buoy: line, min-max band, count bars; a gap where no good value exists. Direction variables show a circular mean and no band.
-5. **SST.** Month selector over the monthly mean grid. Try a very large box: the API's own refusal is shown.
+1. **Login.** The page warns that development passwords are in use. Show the theme button (system, light, dark). Sign in as `viewer` (a development account; its published password is in `db/init/003_*`). Point out: a wrong password gives a plain message; five wrong ones lock the account for 15 minutes.
+2. **Map.** Five footprints on a graticule (no coastline: none is licensed in the repo). Filter by platform type `argo`; type a bad box such as `10,20` to show the plain-words refusal. Point at a footprint (card), Tab to one, Enter, Escape. Footer: "synthetic".
+3. **Profile.** Dataset `argo...`; pick a profile. Temperature and salinity against depth. Switch "Quality" to "all": flagged points appear with a different shape and a label. Move the pointer over a chart: crosshair, readout and table row follow; the strip under it has Copy and "Copy figure caption". Show the table alternative.
+4. **Series.** `series_hourly` of the buoy: line, min-max band, count bars; a hatched strip where no good value exists. Drag across the chart to zoom. Direction variables show a circular mean and no band.
+5. **SST.** Month slider over the monthly mean grid; press Play and watch it stop at the last month; hover a cell for its readout. Try a very large box: the API's own refusal is shown.
 6. **Explore.** Pick a dataset, apply a filter, preview the first page ("page 1 of N" notice), download CSV and NetCDF. The file name is chosen by the server.
-7. **Citation block** on any view: data_version, product_version, qc_config_sha256, flags used. This is what an analyst quotes.
+7. **Provenance strip** under any chart: data_version, product_version, qc_config_sha256, flags used. This is what an analyst quotes; "Copy figure caption" puts it on one line. Finish with the narrow window (360 px: bottom bar) and dark theme.
 8. **Roles.** As viewer, an admin-only API route such as `/health/audit` is refused with 403 and the reason "the admin role is required".
 
 ## What to say about limits

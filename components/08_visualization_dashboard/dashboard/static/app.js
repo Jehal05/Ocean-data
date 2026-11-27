@@ -1,6 +1,7 @@
 // Router, login and page frame. Everything shown comes from the access API; the session is an HttpOnly cookie (never readable here).
 import { ApiError, get, post } from "./api.js";
-import { clear, h } from "./svg.js";
+import { clear, h, icon } from "./svg.js";
+import { themeIsDark, themeNext } from "./logic.js";
 import { exploreView, mapView, profileView, seriesView, sstView } from "./views.js";
 
 const VIEWS = {
@@ -30,18 +31,45 @@ const ctx = {
 
 const $ = (id) => document.getElementById(id);
 
+const THEME_KEY = "scats-theme";
+const THEME_LABEL = { system: "Theme: follow system", light: "Theme: light", dark: "Theme: dark" };
+let themeChoice = "system";
+try { const v = localStorage.getItem(THEME_KEY); if (v === "light" || v === "dark") themeChoice = v; } catch { /* storage may be blocked; the page still works */ }
+const systemDark = window.matchMedia("(prefers-color-scheme: dark)");
+
+function applyTheme() {
+  document.documentElement.classList.toggle("dark", themeIsDark(themeChoice, systemDark.matches));
+  const b = document.getElementById("theme");
+  if (b) {
+    b.replaceChildren(icon(themeChoice === "system" ? "auto" : themeChoice === "dark" ? "moon" : "sun"), h("span", {}, THEME_LABEL[themeChoice]));
+    b.setAttribute("data-theme", themeChoice);
+  }
+}
+systemDark.addEventListener("change", applyTheme);
+
 function navBar() {
   const nav = clear($("nav"));
+  const tools = clear($("tools"));
+  document.body.classList.toggle("anon", !ME);
+  const theme = h("button", { type: "button", id: "theme", class: "themebtn" });
+  theme.addEventListener("click", () => {
+    themeChoice = themeNext(themeChoice);
+    try { localStorage.setItem(THEME_KEY, themeChoice); } catch { /* not stored; the choice still applies until the page is closed */ }
+    applyTheme();
+  });
+  tools.append(theme);
+  applyTheme();
   if (!ME) return;
-  for (const [k, [label]] of Object.entries(VIEWS)) nav.append(h("a", { href: `#/${k}`, "data-view": k }, label));
-  const out = h("button", { type: "button", id: "logout" }, `Log out (${ME.username}, ${ME.role})`);
+  for (const [k, [label]] of Object.entries(VIEWS)) nav.append(h("a", { href: `#/${k}`, "data-view": k, title: label }, icon(k), h("span", { class: "navlabel" }, label.split(" ")[0])));
+  const out = h("button", { type: "button", id: "logout" }, "Sign out");
   out.addEventListener("click", async () => {
     try { await post("/auth/logout"); } catch { /* the session may already be gone */ }
     ME = null; limitCache = null; datasetIndex = null;
     navBar();
     location.hash = "#/login";
   });
-  nav.append(out);
+  tools.prepend(h("span", { class: "who" }, `${ME.username} \u00b7 ${ME.role}`));
+  tools.append(out);
 }
 
 async function loadSession() {

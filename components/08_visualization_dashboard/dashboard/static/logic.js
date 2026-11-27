@@ -237,3 +237,69 @@ export function timeAxis(min, max, n = 6) {
   for (let t = Math.ceil(min / step) * step; t <= max; t += step) ticks.push(t);
   return { min, max: max === min ? min + H : max, step, ticks };
 }
+
+// ---- chart room additions -----------------------------------------------------------------------------------------
+// A checksum is long: show its first characters and keep the whole thing for the title and the Copy button.
+export function shortSha(sha, n = 12) {
+  if (typeof sha !== "string" || !sha) return "not recorded";
+  return sha.length > n ? `${sha.slice(0, n)}…` : sha;
+}
+
+// The one line that goes under a figure in a report: what it is, where it came from, which version, which flags.
+export function captionLine(title, key, info, synthetic) {
+  const c = citation(info);
+  const flags = Array.isArray(info.flags_used) ? info.flags_used.map((f) => `${f} ${flagInfo(f).label}`).join(", ") : c.flags_used;
+  const line = `${title}, ${key}. data_version ${c.data_version}; product_version ${c.product_version}; qc_config_sha256 ${c.qc_config_sha256}; flags used: ${flags}.`;
+  return synthetic ? `${line} The data is synthetic (made for testing, not real ocean data).` : line;
+}
+
+// A brush is dragged between two pixel positions; this is the time range it stands for, earliest first and kept inside the axis.
+export function brushRange(px0, px1, pxL, pxR, tMin, tMax) {
+  const at = (px) => tMin + ((Math.min(pxR, Math.max(pxL, px)) - pxL) / (pxR - pxL)) * (tMax - tMin);
+  const a = at(px0), b = at(px1);
+  return a <= b ? [a, b] : [b, a];
+}
+
+export const isoDay = (ms) => new Date(ms).toISOString().slice(0, 10);
+
+// Play steps through the months one by one and stops after the last (null).
+export const nextIndex = (i, n) => (i + 1 < n ? i + 1 : null);
+
+// Runs of bins that have no good values (count 0), as time spans: from half a bin before the first to half a bin after the last.
+export function gapSpans(times, counts) {
+  const step = times.length > 1 ? Math.min(...times.slice(1).map((t, i) => t - times[i]).filter((d) => d > 0)) : 0;
+  const out = [];
+  let from = null;
+  for (let i = 0; i <= times.length; i++) {
+    const empty = i < times.length && counts[i] === 0;
+    if (empty && from === null) from = i;
+    if (!empty && from !== null) { out.push([times[from] - step / 2, times[i - 1] + step / 2]); from = null; }
+  }
+  return out;
+}
+
+// The point nearest to a pointer position, by horizontal distance (ties go to the earlier one). -1 when there are no points.
+export function nearestIndex(xs, px) {
+  let best = -1;
+  xs.forEach((x, i) => { if (isNum(x) && (best < 0 || Math.abs(x - px) < Math.abs(xs[best] - px))) best = i; });
+  return best;
+}
+
+export const cellReadout = (c, v, unit) => `latitude ${fmt(c.latitude, 5)}, longitude ${fmt(c.longitude, 5)}: ${fmt(c[v], 4)}${unit ? ` ${unit}` : ""}, ${c[`${v}_n_obs`] === undefined ? "observation count not given" : `${c[`${v}_n_obs`]} observations`}`;
+
+export const pointReadout = (variable, value, unit, depth, flag) => `${variable} ${fmt(value, 4)}${unit ? ` ${unit}` : ""} at ${fmt(depth, 4)} m, flag ${flag === null || flag === undefined ? "none" : `${flag} ${flagInfo(flag).label}`}`;
+
+// Theme: system -> light -> dark -> system. The page is dark when chosen so, or when "system" and the system is dark.
+export const themeNext = (t) => ({ system: "light", light: "dark", dark: "system" })[t] || "system";
+export const themeIsDark = (choice, systemDark) => (choice === "dark" ? true : choice === "light" ? false : Boolean(systemDark));
+
+// Where a dataset can be opened: the view that fits its kind, then Explore.
+export function openLinks(d) {
+  const key = encodeURIComponent(d.dataset_key);
+  const links = [];
+  if (d.dataset_type === "profile") links.push({ label: "Open profile", href: `#/profile?key=${key}` });
+  else if (d.dataset_type === "timeseries") links.push({ label: "Open series", href: `#/series?key=series_hourly__${key}` });
+  else if (Array.isArray(d.variables) && d.variables.some((v) => /temperature/.test(v.name || v))) links.push({ label: "Open SST", href: `#/sst?key=sst_monthly_mean__${key}` });
+  links.push({ label: "Explore", href: `#/explore?type=dataset&key=${key}` });
+  return links;
+}

@@ -237,16 +237,6 @@
    ]
   },
   {
-   "mutation": "focus outline colour",
-   "file": "components/08_visualization_dashboard/dashboard/static/style.css",
-   "baseline_passes": true,
-   "caught": true,
-   "first_failing_test": "tests/unit/test_dashboard_contrast.py::test_chart_marks_and_the_focus_outline_have_at_least_3_to_1",
-   "guarding_tests": [
-    "tests/unit/test_dashboard_contrast.py::test_chart_marks_and_the_focus_outline_have_at_least_3_to_1"
-   ]
-  },
-  {
    "mutation": "band outline",
    "file": "components/08_visualization_dashboard/dashboard/static/style.css",
    "baseline_passes": true,
@@ -257,13 +247,13 @@
    ]
   },
   {
-   "mutation": "link target size in the map table (axe)",
+   "mutation": "link target size in the map table ",
    "file": "components/08_visualization_dashboard/dashboard/static/style.css",
    "baseline_passes": true,
    "caught": true,
-   "first_failing_test": "tests/integration/test_dashboard_browser.py::test_axe_core_finds_no_wcag_a_or_aa_violation_in_any_view",
+   "first_failing_test": "tests/integration/test_dashboard_browser.py::test_links_in_the_map_table_are_at_least_24_px_square",
    "guarding_tests": [
-    "tests/integration/test_dashboard_browser.py::test_axe_core_finds_no_wcag_a_or_aa_violation_in_any_view"
+    "tests/integration/test_dashboard_browser.py::test_links_in_the_map_table_are_at_least_24_px_square"
    ]
   },
   {
@@ -302,7 +292,7 @@
    "file": "components/08_visualization_dashboard/dashboard/static/style.css",
    "baseline_passes": true,
    "caught": true,
-   "first_failing_test": "tests/unit/test_dashboard_contrast.py::test_every_end_of_the_sst_colour_scale_is_seen_against_the_page",
+   "first_failing_test": "tests/unit/test_dashboard_contrast.py::test_every_end_of_the_sst_colour_scale_is_seen_against_the_page[light]",
    "guarding_tests": [
     "tests/unit/test_dashboard_contrast.py::test_every_end_of_the_sst_colour_scale_is_seen_against_the_page"
    ]
@@ -315,6 +305,378 @@
    "first_failing_test": "tests/integration/test_dashboard_browser.py::test_sst_stops_at_the_row_cap_says_so_and_asks_for_no_more_pages",
    "guarding_tests": [
     "tests/integration/test_dashboard_browser.py::test_sst_stops_at_the_row_cap_says_so_and_asks_for_no_more_pages"
+   ]
+  },
+  {
+   "mutation": "a flag chip carries the marker shape, not only words",
+   "file": "components/08_visualization_dashboard/dashboard/static/views.js",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_dashboard_browser.py::test_flag_chips_carry_the_marker_shape_and_the_words_in_the_legend_the_table_and_the_strip",
+   "guarding_tests": [
+    "tests/integration/test_dashboard_browser.py::test_flag_chips_carry_the_marker_shape_and_the_words_in_the_legend_the_table_and_the_strip"
+   ]
+  },
+  {
+   "mutation": "table flag cells are chips",
+   "file": "components/08_visualization_dashboard/dashboard/static/views.js",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_dashboard_browser.py::test_flag_chips_carry_the_marker_shape_and_the_words_in_the_legend_the_table_and_the_strip",
+   "guarding_tests": [
+    "tests/integration/test_dashboard_browser.py::test_flag_chips_carry_the_marker_shape_and_the_words_in_the_legend_the_table_and_the_strip"
+   ]
+  },
+  {
+   "mutation": "the legend names all six flags",
+   "file": "components/08_visualization_dashboard/dashboard/static/views.js",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_dashboard_browser.py::test_flag_chips_carry_the_marker_shape_and_the_words_in_the_legend_the_table_and_the_strip",
+   "guarding_tests": [
+    "tests/integration/test_dashboard_browser.py::test_flag_chips_carry_the_marker_shape_and_the_words_in_the_legend_the_table_and_the_strip"
+   ]
+  },
+  {
+   "mutation": "the provenance strip shows the whole checksum in its title",
+   "file": "components/08_visualization_dashboard/dashboard/static/views.js",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_dashboard_browser.py::test_every_figure_has_a_provenance_strip_with_versions_a_short_checksum_and_flag_chips",
+   "guarding_tests": [
+    "tests/integration/test_dashboard_browser.py::test_every_figure_has_a_provenance_strip_with_versions_a_short_checksum_and_flag_chips"
+   ]
+  },
+  {
+   "mutation": "a dataset's flags used are shown as chips",
+   "file": "components/08_visualization_dashboard/dashboard/static/views.js",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_dashboard_browser.py::test_every_figure_has_a_provenance_strip_with_versions_a_short_checksum_and_flag_chips",
+   "guarding_tests": [
+    "tests/integration/test_dashboard_browser.py::test_every_figure_has_a_provenance_strip_with_versions_a_short_checksum_and_flag_chips"
+   ]
+  },
+  {
+   "mutation": "'Copied' is announced as a status",
+   "file": "components/08_visualization_dashboard/dashboard/static/views.js",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_dashboard_browser.py::test_the_copy_buttons_copy_the_checksum_and_a_one_line_caption_and_say_so",
+   "guarding_tests": [
+    "tests/integration/test_dashboard_browser.py::test_the_copy_buttons_copy_the_checksum_and_a_one_line_caption_and_say_so"
+   ]
+  },
+  {
+   "mutation": "a refused clipboard falls back to a selected text field",
+   "file": "components/08_visualization_dashboard/dashboard/static/views.js",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_dashboard_browser.py::test_when_the_clipboard_is_refused_the_text_is_shown_selected_in_a_visible_field",
+   "guarding_tests": [
+    "tests/integration/test_dashboard_browser.py::test_when_the_clipboard_is_refused_the_text_is_shown_selected_in_a_visible_field"
+   ]
+  },
+  {
+   "mutation": "the caption says when the data is synthetic",
+   "file": "components/08_visualization_dashboard/dashboard/static/logic.js",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "node test: not ok 23 - the figure caption line names the view, the key, the versions and the flags, and says when the data is synthetic",
+   "guarding_tests": [
+    "tests/js/logic.test.mjs",
+    "tests/integration/test_dashboard_browser.py::test_the_copy_buttons_copy_the_checksum_and_a_one_line_caption_and_say_so"
+   ]
+  },
+  {
+   "mutation": "Escape closes the map card",
+   "file": "components/08_visualization_dashboard/dashboard/static/views.js",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_dashboard_browser.py::test_a_footprint_card_opens_on_hover_and_on_focus_enter_pins_it_and_escape_closes_it",
+   "guarding_tests": [
+    "tests/integration/test_dashboard_browser.py::test_a_footprint_card_opens_on_hover_and_on_focus_enter_pins_it_and_escape_closes_it"
+   ]
+  },
+  {
+   "mutation": "the map has a degree graticule every 30 degrees",
+   "file": "components/08_visualization_dashboard/dashboard/static/views.js",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_dashboard_browser.py::test_the_map_has_an_ocean_a_degree_graticule_and_a_legend_by_type",
+   "guarding_tests": [
+    "tests/integration/test_dashboard_browser.py::test_the_map_has_an_ocean_a_degree_graticule_and_a_legend_by_type"
+   ]
+  },
+  {
+   "mutation": "a grid footprint is dotted (a pattern, not only a colour)",
+   "file": "components/08_visualization_dashboard/dashboard/static/style.css",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_dashboard_browser.py::test_the_map_has_an_ocean_a_degree_graticule_and_a_legend_by_type",
+   "guarding_tests": [
+    "tests/integration/test_dashboard_browser.py::test_the_map_has_an_ocean_a_degree_graticule_and_a_legend_by_type"
+   ]
+  },
+  {
+   "mutation": "the profile crosshair highlights the table row",
+   "file": "components/08_visualization_dashboard/dashboard/static/views.js",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_dashboard_browser.py::test_the_profile_crosshair_readout_and_table_row_follow_the_pointer_and_the_arrow_keys",
+   "guarding_tests": [
+    "tests/integration/test_dashboard_browser.py::test_the_profile_crosshair_readout_and_table_row_follow_the_pointer_and_the_arrow_keys"
+   ]
+  },
+  {
+   "mutation": "the profile readout carries the flag chip",
+   "file": "components/08_visualization_dashboard/dashboard/static/views.js",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_dashboard_browser.py::test_the_profile_crosshair_readout_and_table_row_follow_the_pointer_and_the_arrow_keys",
+   "guarding_tests": [
+    "tests/integration/test_dashboard_browser.py::test_the_profile_crosshair_readout_and_table_row_follow_the_pointer_and_the_arrow_keys"
+   ]
+  },
+  {
+   "mutation": "the series brush sets From",
+   "file": "components/08_visualization_dashboard/dashboard/static/views.js",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_dashboard_browser.py::test_dragging_a_brush_on_the_series_sets_from_and_to_and_asks_again",
+   "guarding_tests": [
+    "tests/integration/test_dashboard_browser.py::test_dragging_a_brush_on_the_series_sets_from_and_to_and_asks_again"
+   ]
+  },
+  {
+   "mutation": "the range inputs set From",
+   "file": "components/08_visualization_dashboard/dashboard/static/views.js",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_dashboard_browser.py::test_two_range_inputs_are_the_keyboard_route_to_the_same_zoom",
+   "guarding_tests": [
+    "tests/integration/test_dashboard_browser.py::test_two_range_inputs_are_the_keyboard_route_to_the_same_zoom"
+   ]
+  },
+  {
+   "mutation": "a bin with no good values is a hatched strip",
+   "file": "components/08_visualization_dashboard/dashboard/static/views.js",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_dashboard_browser.py::test_a_bin_with_no_good_values_is_a_hatched_strip_labelled_in_words",
+   "guarding_tests": [
+    "tests/integration/test_dashboard_browser.py::test_a_bin_with_no_good_values_is_a_hatched_strip_labelled_in_words"
+   ]
+  },
+  {
+   "mutation": "the hatched strip is labelled in words",
+   "file": "components/08_visualization_dashboard/dashboard/static/views.js",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_dashboard_browser.py::test_a_bin_with_no_good_values_is_a_hatched_strip_labelled_in_words",
+   "guarding_tests": [
+    "tests/integration/test_dashboard_browser.py::test_a_bin_with_no_good_values_is_a_hatched_strip_labelled_in_words"
+   ]
+  },
+  {
+   "mutation": "Play stops after the last month",
+   "file": "components/08_visualization_dashboard/dashboard/static/logic.js",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "node test: not ok 25 - play moves to the next month and stops after the last",
+   "guarding_tests": [
+    "tests/js/logic.test.mjs",
+    "tests/integration/test_dashboard_browser.py::test_play_steps_one_month_at_a_time_and_stops_at_the_last_month"
+   ]
+  },
+  {
+   "mutation": "Play is disabled under reduced motion",
+   "file": "components/08_visualization_dashboard/dashboard/static/views.js",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_dashboard_browser.py::test_play_is_disabled_with_a_visible_reason_when_the_system_asks_for_less_motion",
+   "guarding_tests": [
+    "tests/integration/test_dashboard_browser.py::test_play_is_disabled_with_a_visible_reason_when_the_system_asks_for_less_motion"
+   ]
+  },
+  {
+   "mutation": "a late SST answer is dropped",
+   "file": "components/08_visualization_dashboard/dashboard/static/views.js",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_dashboard_browser.py::test_a_late_answer_for_an_earlier_month_never_overwrites_the_newer_one",
+   "guarding_tests": [
+    "tests/integration/test_dashboard_browser.py::test_a_late_answer_for_an_earlier_month_never_overwrites_the_newer_one"
+   ]
+  },
+  {
+   "mutation": "the SST cell readout gives the numbers",
+   "file": "components/08_visualization_dashboard/dashboard/static/views.js",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_dashboard_browser.py::test_a_cell_readout_gives_latitude_longitude_value_with_unit_and_observation_count",
+   "guarding_tests": [
+    "tests/integration/test_dashboard_browser.py::test_a_cell_readout_gives_latitude_longitude_value_with_unit_and_observation_count"
+   ]
+  },
+  {
+   "mutation": "the SST map can be moved through with the arrow keys",
+   "file": "components/08_visualization_dashboard/dashboard/static/views.js",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_dashboard_browser.py::test_a_cell_readout_gives_latitude_longitude_value_with_unit_and_observation_count",
+   "guarding_tests": [
+    "tests/integration/test_dashboard_browser.py::test_a_cell_readout_gives_latitude_longitude_value_with_unit_and_observation_count"
+   ]
+  },
+  {
+   "mutation": "a download card shows the rows limit",
+   "file": "components/08_visualization_dashboard/dashboard/static/views.js",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_dashboard_browser.py::test_explore_has_four_steps_and_download_cards_with_the_file_type_the_rows_and_the_limit",
+   "guarding_tests": [
+    "tests/integration/test_dashboard_browser.py::test_explore_has_four_steps_and_download_cards_with_the_file_type_the_rows_and_the_limit"
+   ]
+  },
+  {
+   "mutation": "the explore status line says which page of how many",
+   "file": "components/08_visualization_dashboard/dashboard/static/views.js",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_dashboard_browser.py::test_the_explore_status_line_says_which_page_of_how_many",
+   "guarding_tests": [
+    "tests/integration/test_dashboard_browser.py::test_the_explore_status_line_says_which_page_of_how_many"
+   ]
+  },
+  {
+   "mutation": "a skeleton stands in while a request is open",
+   "file": "components/08_visualization_dashboard/dashboard/static/views.js",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_dashboard_browser.py::test_a_skeleton_stands_in_while_a_request_is_open_and_is_gone_after_the_answer",
+   "guarding_tests": [
+    "tests/integration/test_dashboard_browser.py::test_a_skeleton_stands_in_while_a_request_is_open_and_is_gone_after_the_answer"
+   ]
+  },
+  {
+   "mutation": "an empty state names a next step",
+   "file": "components/08_visualization_dashboard/dashboard/static/views.js",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_dashboard_browser.py::test_an_empty_result_says_so_and_offers_a_next_step",
+   "guarding_tests": [
+    "tests/integration/test_dashboard_browser.py::test_an_empty_result_says_so_and_offers_a_next_step"
+   ]
+  },
+  {
+   "mutation": "the chosen theme is remembered",
+   "file": "components/08_visualization_dashboard/dashboard/static/app.js",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_dashboard_browser.py::test_the_theme_button_cycles_system_light_dark_and_the_choice_survives_a_reload",
+   "guarding_tests": [
+    "tests/integration/test_dashboard_browser.py::test_the_theme_button_cycles_system_light_dark_and_the_choice_survives_a_reload"
+   ]
+  },
+  {
+   "mutation": "the page survives a throwing localStorage",
+   "file": "components/08_visualization_dashboard/dashboard/static/app.js",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_dashboard_browser.py::test_the_page_works_when_local_storage_throws",
+   "guarding_tests": [
+    "tests/integration/test_dashboard_browser.py::test_the_page_works_when_local_storage_throws"
+   ]
+  },
+  {
+   "mutation": "the sidebar is hidden before sign-in",
+   "file": "components/08_visualization_dashboard/dashboard/static/app.js",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_dashboard_browser.py::test_the_sidebar_is_not_shown_to_someone_who_is_not_signed_in",
+   "guarding_tests": [
+    "tests/integration/test_dashboard_browser.py::test_the_sidebar_is_not_shown_to_someone_who_is_not_signed_in"
+   ]
+  },
+  {
+   "mutation": "the narrow-screen layout (bottom bar)",
+   "file": "components/08_visualization_dashboard/dashboard/static/style.css",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/integration/test_dashboard_browser.py::test_no_view_scrolls_sideways_at_360_px_and_the_bottom_bar_is_reachable[light]",
+   "guarding_tests": [
+    "tests/integration/test_dashboard_browser.py::test_no_view_scrolls_sideways_at_360_px_and_the_bottom_bar_is_reachable"
+   ]
+  },
+  {
+   "mutation": "the dark theme sets every colour token",
+   "file": "components/08_visualization_dashboard/dashboard/static/style.css",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/unit/test_dashboard_contrast.py::test_the_dark_theme_overrides_every_colour_token_of_the_light_one",
+   "guarding_tests": [
+    "tests/unit/test_dashboard_contrast.py::test_the_dark_theme_overrides_every_colour_token_of_the_light_one"
+   ]
+  },
+  {
+   "mutation": "dark-theme secondary text is readable",
+   "file": "components/08_visualization_dashboard/dashboard/static/style.css",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/unit/test_dashboard_contrast.py::test_normal_text_has_at_least_4_5_to_1[dark]",
+   "guarding_tests": [
+    "tests/unit/test_dashboard_contrast.py::test_normal_text_has_at_least_4_5_to_1"
+   ]
+  },
+  {
+   "mutation": "the dark-theme focus outline is visible",
+   "file": "components/08_visualization_dashboard/dashboard/static/style.css",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/unit/test_dashboard_contrast.py::test_chart_marks_and_the_focus_outline_have_at_least_3_to_1[dark]",
+   "guarding_tests": [
+    "tests/unit/test_dashboard_contrast.py::test_chart_marks_and_the_focus_outline_have_at_least_3_to_1"
+   ]
+  },
+  {
+   "mutation": "the light-theme focus outline is visible",
+   "file": "components/08_visualization_dashboard/dashboard/static/style.css",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "tests/unit/test_dashboard_contrast.py::test_chart_marks_and_the_focus_outline_have_at_least_3_to_1[light]",
+   "guarding_tests": [
+    "tests/unit/test_dashboard_contrast.py::test_chart_marks_and_the_focus_outline_have_at_least_3_to_1"
+   ]
+  },
+  {
+   "mutation": "a gap strip is placed half a bin each side",
+   "file": "components/08_visualization_dashboard/dashboard/static/logic.js",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "node test: not ok 26 - runs of empty bins become gap spans of half a bin on each side",
+   "guarding_tests": [
+    "tests/js/logic.test.mjs"
+   ]
+  },
+  {
+   "mutation": "a brush dragged right to left is put in order",
+   "file": "components/08_visualization_dashboard/dashboard/static/logic.js",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "node test: not ok 24 - a brush gives the time range between two pixel positions, earliest first, kept inside the axis",
+   "guarding_tests": [
+    "tests/js/logic.test.mjs"
+   ]
+  },
+  {
+   "mutation": "the system theme follows the system",
+   "file": "components/08_visualization_dashboard/dashboard/static/logic.js",
+   "baseline_passes": true,
+   "caught": true,
+   "first_failing_test": "node test: not ok 29 - the theme choice cycles system, light, dark and an unknown choice falls back to system",
+   "guarding_tests": [
+    "tests/js/logic.test.mjs"
    ]
   }
  ],
